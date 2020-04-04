@@ -16,7 +16,7 @@ debug: $(binary_name)
 debug: override CXXFLAGS += -g
 
 $(binary_name) : $(source_name) $(header_list) $(dataset)
-    g++ -o $@ $< -pthread $(CXXFLAGS)
+    g++ -o $@ $< -pthread -Wall -Wextra -Wno-sign-compare $(CXXFLAGS)
 
 $(dataset) :
     python3 read_mnist/convert.py

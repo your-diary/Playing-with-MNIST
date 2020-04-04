@@ -62,7 +62,7 @@
                 vector<double> accuracy_history_for_training_data_;
                 vector<double> accuracy_history_for_testing_data_;
 
-                bool error_flag_;
+                bool error_flag_ = false;
 
             private:
 
@@ -292,8 +292,8 @@
                 MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double scale)
                     :
                         num_node_of_hidden_layer_(num_node_of_hidden_layer),
-                        batch_size_(batch_size),
                         layer_(2 * num_node_of_hidden_layer_.size() + 1),
+                        batch_size_(batch_size),
                         rand_(seed)
                 {
 

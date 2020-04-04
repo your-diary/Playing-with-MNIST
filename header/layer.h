@@ -16,6 +16,8 @@
 
             public:
 
+                virtual ~Layer() { }
+
                 virtual vector<vector<double>> forward_propagation_(const vector<vector<double>> &forward_input) = 0;
 
                 virtual vector<vector<double>> backward_propagation_(const vector<vector<double>> &backward_input) = 0;
@@ -27,6 +29,10 @@
             public:
 
                 enum calculation_mode_type_ {training_, testing_};
+
+            public:
+
+                virtual ~LastLayer() { }
 
                 virtual double forward_propagation_(const vector<vector<double>> &network_output, const vector<int> &label_mask) = 0;
 
@@ -227,7 +233,7 @@
 
                     forward_input_ = label_mask;
                     
-                    double final_output;
+                    double final_output = 0;
                     const unsigned N = softmax_output.size();
 
                     static const double delta = 1e-7; //avoids overflow

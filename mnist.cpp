@@ -30,11 +30,11 @@ namespace prm {
 
     const bool should_normalize_pixel_value = true;
 
-    const unsigned seed = -1;
+    const unsigned seed = 1;
 
     const double scale = 1;
 
-    const unsigned epoch = 1;
+    const unsigned epoch = 16;
 
     const double dx = 1e-2;
 
