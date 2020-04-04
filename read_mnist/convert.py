@@ -1,10 +1,18 @@
 import numpy as np
 
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 import sys
 sys.path.append("./original_data");
 from dataset.mnist import load_mnist
 
 target_directory = "./data/";
+try:
+    print("Creating the output directory...");
+    os.mkdir(target_directory);
+except:
+    pass;
 
 #This line loads (training images, training labels) and (testing images, testing labels).
 (x_train, t_train), (x_test, t_test) = load_mnist(flatten = True, normalize = False);
