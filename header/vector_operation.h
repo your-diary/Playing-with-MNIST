@@ -219,9 +219,35 @@
         template <typename T>
         vector<vector<T>> transpose(const vector<vector<T>> &v) {
             vector<vector<T>> ret(v[0].size(), vector<T>(v.size()));
-            for (int i = 0; i < v.size(); ++i) {
-                for (int j = 0; j < v[i].size(); ++j) {
+            for (int i = 0; i < ret.size(); ++i) {
+                for (int j = 0; j < ret[i].size(); ++j) {
                     ret[i][j] = v[j][i];
+                }
+            }
+            return ret;
+        }
+
+        //This function returns the element of an array who has the maximum value.
+        template <typename T>
+        T max(const vector<T> &v) {
+            T max_value = v[0];
+            for (int i = 1; i < v.size(); ++i) {
+                if (v[i] > max_value) {
+                    max_value = v[i];
+                }
+            }
+            return max_value;
+        }
+
+        //This function returns the index of the maximum element in an array.
+        template <typename T>
+        int index_for_max_value(const vector<T> &v) {
+            T max_value = v[0];
+            int ret = 0;
+            for (int i = 1; i < v.size(); ++i) {
+                if (v[i] > max_value) {
+                    max_value = v[i];
+                    ret = i;
                 }
             }
             return ret;
