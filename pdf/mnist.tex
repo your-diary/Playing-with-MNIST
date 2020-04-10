@@ -1,0 +1,1017 @@
+\documentclass{article}
+\input{./library.tex}
+\usepackage[top=30truemm,bottom=30truemm,left=25truemm,right=25truemm]{geometry}
+\setlength\parindent{8pt}
+\usepackage{indentfirst}
+\usepackage{graphicx}
+% \usepackage[draft]{graphicx}
+\usepackage{subcaption}
+% \counter{}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\theoremstyle{definition}
+\newtheorem{__theorem}{Theorem}[section]
+\newtheorem{__proof}{Proof}[section]
+\renewcommand{\qedsymbol}{\hfill\blacksquare}
+\newcommand{\theoremsymbol}{\hfill\square}
+
+\usepackage{float}
+
+\counterwithin*{equation}{section}
+\counterwithin*{figure}{section}
+\counterwithin*{table}{section}
+
+\usepackage[nottoc,numbib]{tocbibind}
+
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\renewcommand{\thetable}{\arabic{section}.\arabic{table}}
+\renewcommand{\thealgorithm}{\arabic{section}.\arabic{algorithm}}
+
+\newcommand{\sect}[1]{Section \ref{section:#1}}
+
+\newcommand{\theorem}[1]{Theorem \ref{theorem:#1}}
+\newcommand{\fig}[1]{Figure \ref{fig:#1}}
+\newcommand{\tab}[1]{Table \ref{tab:#1}}
+\newcommand{\alg}[1]{Algorithm \ref{algorithm:#1}}
+
+\usepackage{listings}
+% \usepackage{tabularx}
+\usepackage{datetime2}
+% \usepackage{ulem}
+\usepackage[unicode]{hyperref}
+
+\hypersetup{
+    pdftitle={Playing with MNIST},
+    colorlinks={true},
+    linkcolor={blue},
+    citecolor={blue},
+    bookmarksnumbered={true},
+}
+
+\begin{document}
+
+\begin{center}
+{\Large Playing with MNIST}\\
+\enter
+Author: Manatsu Takahashi (\href{mailto:takahashi.manatsu@gmail.com}{takahashi.manatsu@gmail.com})\\
+Last Modified: \DTMnow
+\end{center}
+
+\enter
+\begin{abstract}
+In this tutorial paper, we learn what is and how to use Neural Network, which is an algorithm in the field of machine learning. We supply both theoretical explanations and a program which learns MNIST dataset to recognize hand-written digits. As for the program, it is written in C++ (not usual Python) without external library and the code structure is explained in detail. The final purpose is to create a web application in which a user draw a line and the program infers what the digit is. It should be easy to apply neural networks to another problem after reading this paper. All the source codes are available in github.com...
+\end{abstract}
+
+\enter
+\tableofcontents
+
+%-------------------------------------%
+
+\newpage
+\section{Introduction}
+
+%-------------------------------------%
+
+\subsection{Optimization}
+
+{\it Optimization} is a method to pull the best solution out of all possible solutions \cite{1}. Each solution is tagged with an {\it energy} which determines how good the solution is. Normally we associate a lower energy with a better solution. Then, if we can somehow decrease energy, we will finally achieve the best solution.\\
+
+As an example, let's consider a problem where we are required to divide the Japanese Islands except for Hokkaido\footnote{"Hokkaido" is the name of the largest prefecture in Japan. Hokkaido is so large that its area $a$ satisfies $\frac{1}{5} < \frac{a}{A} < \frac{1}{4}$ where $A$ is the total area of the Islands.} as equal as possible into four divisions with respect to their areas. The division should be done in units of prefectures, meaning each prefecture cannot be broken into smaller parts and it as a whole should be stored in a division. This problem can be solved, taking these steps.
+\begin{enumerate}
+
+\item
+First we have to define energy. The definition is actually arbitrary, but it is natural we define energy $E$ as
+\begineq
+E \equiv \sum _i \abs{\frac{(\text{total area})}{4} - A_i} \la{1.1}
+\edeq
+
+where $A_i$ is the area of $i$th division. The lowest energy $0$ means the Islands are perfectly equally separated.
+
+\item
+Then we create an initial state. Let $D \equiv \bracc{1, 2, 3, 4}$ and $d_i$ be a division number assigned to each prefecture, which means $i$th prefecture now belong to $i$th division. By initializing $\bracc{d_i}$ with random integers whose range is given by $D$, we get a random initial state; each prefecture is included in a random division.
+
+\item
+Next we start to decrease the energy $E$. We randomly pick up a prefecture $j$ and again randomly change the value of its division number $d_j$. For example, if the current value of $d_j$ is $2$, we randomly select an integer $n$ from the set $D \backslash \bracc{d_j} = \bracc{1, 3, 4}$ and assign $n$ to $d_j$. After that, we check the difference $\Delta E \equiv E_\text{new} - E_\text{old}$, where $E_\text{new}$ and $E_\text{old}$ are energies before or after this assignment respectively. If $\Delta E < 0$, that is, if the assignment has decreased the energy, we accept the change. Otherwise, we reject the assignment and revert the change.
+
+\item
+We repeat the step 3 until $E$ gets smaller than some small value $\eps$. The specific value of $\eps$ is case-by-case but usually it does not correspond to the minimum possible energy since getting the very lowest energy is difficult especially when we execute numerical (i.e. non-analytic) optimization.
+
+\end{enumerate}
+
+\enter\indent
+That's all. See \fig{1.1} for an example initial state and an example final state. We also supply the animation \href{fig/fig\_1\_1.gif}{\inline{fig\_1\_1.gif}} which illustrates how a calculation proceed.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \pic{7}{fig/fig_1_1_a.png}
+        \caption{initial state ($E = 26487.5$)}
+	\end{subfigure}
+    \begin{subfigure}[b]{0.49\textwidth}
+        \pic{7}{fig/fig_1_1_b.png}
+        \caption{final state ($E = 0.04$)}
+	\end{subfigure}
+    \caption{An example initial state and an example final state. Each color corresponds to an element in the set $D$ (i.e. a division number) and top-left Hokkaido is exceptionally colored yellow. The energy $0.04$ means the area difference among divisions is within $0.04\ (\text{km}^2)$, which is about the area of \href{https://en.wikipedia.org/wiki/Tokyo_Dome}{\it Tokyo Dome} multiplied by $0.86$.}
+    \label{fig:1.1}
+\end{figure}
+
+\enter\indent
+One of the most important thing is that optimization can be applied to any sorts of problems as far as we can define energy. Even when a problem can be analytically solved, optimization is often adopted as there are quite many optimization algorithms which give a sufficiently good solution in a short time\footnote{Consider the problem "which is the shortest path from the station $A$ to the airport $B$?", that a car navigation system usually encounter. Although the analytical solution is needed if we really mean "most short" by "shortest", it is not rare that a sufficiently short path works well. If that's the case, we may want to use an optimization algorithm to get a two-minute-fifteen-second solution in a few hundreds of milliseconds rather than using an analytical algorithm (e.g. \href{https://en.wikipedia.org/wiki/Dijkstra\%27s\_algorithm}{Dijkstra's algorithm}) to get the shortest two-minute-ten-second solution in a few second.}.
+
+\newpage
+
+%-------------------------------------%
+
+\subsection{Machine Learning} \label{section:1.2}
+
+{\it Machine learning} is the scientific study of algorithms and seen as a subset of artificial intelligence. Such algorithms rely on patterns and inference instead of using explicit instructions \cite{2}. Though machine learning handles a wide variety of problems such as \href{https://en.wikipedia.org/wiki/Regression\_analysis}{\it regression problem}, \href{https://en.wikipedia.org/wiki/Binary\_classification}{\it binary classification problem} and \href{https://en.wikipedia.org/wiki/Multiclass\_classification}{\it multiclass classification problem}, let's focus on the last one. Hereafter we assume \href{https://en.wikipedia.org/wiki/Supervised\_learning}{\it supervised learning}, in which the desired outputs (i.e. the correct answers) are given in addition to training data itself.\\
+
+Multiclass classification is the problem to answer which category an input falls into. Assume we'd like to infer the gender of the person appeared in an input image. This type of problem is solved in these two phases:
+\begin{enumerate}
+\item
+In {\it training phase}, for each input image in {\it training data}, a model implemented in a computer reads it and outputs the inferred gender. By modifying internal parameters according to how the inferred outputs are different from the correct {\it label}s (i.e. the correct answers), the model learns the patterns found in the images to achieve higher recognition accuracy.
+
+\item
+In {\it Inference Phase}, the model reads an arbitrary input image which is normally not included in the training data and outputs the inferred gender while the internal parameters are fixed. It is said to be {\it overfitting}, which should be avoided, if the model has low accuracy\footnote{How can we define accuracy for inputs fed in inference phase though we have no correct answers for them? To define accuracy, we prepare a set of data and the corresponding labels as {\it testing data} which is similar to training data but is reserved not to be used in training phase.} for inputs read in inference phase whereas it has high accuracy for the training data.
+\end{enumerate}
+
+The learning process often boils down to an optimization problem \cite{3}, and how it proceeds depends on specific algorithms. In this paper, we mainly deal with {\it neural networks} among them.
+
+%-------------------------------------%
+
+\newpage
+\section{Perceptron}
+
+\subsection{What is Perceptron?} \label{section:2.1}
+
+Before discussing neural networks, we introduce {\it perceptron}. Perceptron, devised in 1975, is a function which takes one or more boolean values as its arguments and returns a boolean value. Each input $x_i$ is multiplied by the weight $w_i$ bound to a perceptron and the returned value $y$ is determined by the equations
+\begineq
+y &=& \left\{ \beginarray{l} 0 \supp{S' \leq t} \\ 1 \supp{S' > t} \edarray \right. \la{2.1} \\
+S' &\equiv& \sum _i x_i w_i \la{2.2}
+\edeq
+
+where $t$ is some threshold specific to the perceptron. A perceptron is said to be {\it firing} if $y = 1$. By defining {\it bias} $b \equiv -t$, the equations are rewritten as
+\begineq
+y &=& \left\{ \beginarray{l} 0 \supp{S \leq 0} \\ 1 \supp{S > 0} \edarray \right. \la{2.3} \\
+S &\equiv& \sum _i x_i w_i + b. \la{2.4}
+\edeq
+
+We can structure a {\it network}, a.k.a. a {\it graph}, by arranging multiple perceptrons, which have generally different $\bracc{w_i}$ and $b$, and defining the relationship between them. Then each perceptron is called a {\it neuron} or a {\it node} and each bridge which connects two different perceptrons is called an {\it edge}. In this case, an edge has its direction, meaning a pulse is transferred from a {\it source} node to a {\it target} node. See \fig{2.1} for an example.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{9}{fig/fig_2_1.png}
+	\end{subfigure}
+    \caption{An example network which consists of six perceptrons.}
+    \label{fig:2.1}
+\end{figure}
+
+\subsection{Logic Gate}
+
+A {\it boolean function} is a function of the form $f: \mathbb{B}^k \to \mathbb{B}$, where $\mathbb{B} = \bracc{0, 1} = \bracc{\inline{false},\ \inline{true}}$ is a {\it boolean domain} \cite{4}. And a {\it logic gate} is an entity implementing a boolean function \cite{5}. It is clear a perceptron behaves as a boolean function or a logic gate. In this subsection, we see a single perceptron is not quite flexible and also see, fortunately, this fact is not a bad news. Hereafter we mean "a logic gate with $k = 2$" just by "a gate", and only in this subsection refer to "a perceptron with two inputs" just as "a perceptron".
+
+\newpage
+
+\subsubsection{AND Gate}
+
+An {\it AND gate} is a gate which returns \inline{true} if and only if both inputs are \inline{true}. The corresponding {\it truth table} is shown as \tab{2.1}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|cc|c|} \hline
+    Input 1 & Input 2 & Output \\ \hline
+    0 & 0 & 0 \\ \hline
+    0 & 1 & 0 \\ \hline
+    1 & 0 & 0 \\ \hline
+    1 & 1 & 1 \\ \hline
+    \end{tabular}
+    \caption{Truth table for an AND gate.}
+    \label{tab:2.1}
+\end{table}
+
+A perceptron becomes an AND gate if
+\begineq
+w_1 + w_2 &>& t \la{2.5} \\
+w_1 &\leq& t \la{2.6} \\
+w_2 &\leq& t \la{2.7} \\
+0 &\leq& t. \la{2.8}
+\edeq
+
+There are infinite ways of choosing the parameters which satisfy these conditions (e.g. $(w_1,\ w_2,\ t) \equiv (0.5,\ 0.5,\ 0.7)$).
+
+\subsubsection{NAND Gate}
+
+A {\it NAND gate} is a gate which, as its name "Not-AND" implies, returns \inline{false} if and only if both inputs are \inline{true}. The corresponding truth table is shown as \tab{2.2}.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|cc|c|} \hline
+    Input 1 & Input 2 & Output \\ \hline
+    0 & 0 & 1 \\ \hline
+    0 & 1 & 1 \\ \hline
+    1 & 0 & 1 \\ \hline
+    1 & 1 & 0 \\ \hline
+    \end{tabular}
+    \caption{Truth table for an NAND gate.}
+    \label{tab:2.2}
+\end{table}
+
+A perceptron becomes a NAND gate if
+\begineq
+w_1 + w_2 &\leq& t \la{2.9} \\
+w_1 &>& t \la{2.10} \\
+w_2 &>& t \la{2.11} \\
+0 &>& t. \la{2.12}
+\edeq
+
+There are infinite ways of choosing the parameters which satisfy these conditions (e.g. $(w_1,\ w_2,\ t) \equiv (-0.5,\ -0.5,\ -0.7)$). In fact, just negating all the parameters of an AND gate gives an NAND gate as far as 
+\begineq
+w_1 &\neq& t \la{2.13} \\
+w_2 &\neq& t \la{2.14} \\
+t &\neq& 0. \la{2.15}
+\edeq
+
+These restrictions are needed since the original equations \refe{2.5}, ..., \refe{2.8} are not of the symmetric forms\footnote{Reversing "$\leq$" we get not "$\geq$" but "$>$". This gives rise to an asymmetry.}.
+
+\subsubsection{OR Gate}
+
+An {\it OR gate} is a gate which returns \inline{true} if at least one of the inputs is \inline{true}. The corresponding truth table is shown as \tab{2.3}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|cc|c|} \hline
+    Input 1 & Input 2 & Output \\ \hline
+    0 & 0 & 0 \\ \hline
+    0 & 1 & 1 \\ \hline
+    1 & 0 & 1 \\ \hline
+    1 & 1 & 1 \\ \hline
+    \end{tabular}
+    \caption{Truth table for an OR gate.}
+    \label{tab:2.3}
+\end{table}
+
+A perceptron becomes an OR gate if
+\begineq
+w_1 + w_2 &>& t \la{2.16} \\
+w_1 &>& t \la{2.17} \\
+w_2 &>& t \la{2.18} \\
+0 &\leq& t. \la{2.19}
+\edeq
+
+There are infinite ways of choosing the parameters which satisfy these conditions (e.g. $(w_1,\ w_2,\ t) \equiv (0.5,\ 0.5,\ 0.4)$).\\
+
+Independent of our choice to use a perceptron as an AND gate, a NAND gate or an OR gate, the only different things are the parameters; the structure of the perceptron itself is not changed. In other words, just by changing the values of the parameters, a perceptron's behavior may completely be changed. Further, it is necessary to mention the fact that, when we use a network consisting of perceptrons to calculate something, it is possible and easy to tweak the parameters "during" the calculation, which leads to the change of the way how the calculation proceed. So a perceptron is quite flexible, right? No, it depends.
+
+\subsubsection{XOR Gate}
+
+Let's consider a gate called an {\it XOR gate}, or an {\it Exclusive OR gate}. It returns \inline{true} if only one of the two inputs is \inline{true}. See \tab{2.4} for the truth table.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|cc|c|} \hline
+    Input 1 & Input 2 & Output \\ \hline
+    0 & 0 & 0 \\ \hline
+    0 & 1 & 1 \\ \hline
+    1 & 0 & 1 \\ \hline
+    1 & 1 & 0 \\ \hline
+    \end{tabular}
+    \caption{Truth table for an XOR gate.}
+    \label{tab:2.4}
+\end{table}
+
+A perceptron becomes an XOR gate if
+\begineq
+w_1 + w_2 &\leq& t \la{2.20} \\
+w_1 &>& t \la{2.21} \\
+w_2 &>& t \la{2.22} \\
+0 &\leq& t \la{2.23}
+\edeq
+
+, but it is crystal-clear these conditions are self-contradicting. Contrary to the fact that an XOR operation is used so frequently that many programming languages implement it as a builtin operator (e.g. \inline{\textasciicircum}), it is never be expressed by a single perceptron.
+
+\newpage
+
+It is possible to invent a more intuitive explanation. As shown in \sect{2.1}, the output $y$ of a perceptron is given by
+\begineq
+y &=& \left\{ \beginarray{l} 0 \supp{S \leq 0} \\ 1 \supp{S > 0} \edarray \right. \la{2.24} \\
+S &\equiv& w_1 x_1 + w_2 x_2 + b. \la{2.25}
+\edeq
+
+$S = 0$ is an equation of a line which separates the $x_1 - x_2$ plane into two parts and each area is expressed by $S \leq 0$ or $S > 0$. Thus, a specific gate can be implemented by a perceptron if and only if the four points $(0,0),\ (0,1),\ (1,0)\ (1,1)$ can be separated following the truth table. For example, an AND gate can be implemented since it is possible to draw a linear line in such a way that only the point $(1, 1)$ out of the four points is above the line. However, there is no way to draw a line such that the points $(0, 1),\ (1, 0)$ belong to a division and the other two points belong to the other division. That's why an XOR gate cannot be implemented via an perceptron. \fig{2.2} illustrates this logic.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{7.5}{fig/fig_2_2.eps}
+	\end{subfigure}
+    \caption{An example network which consists of six perceptrons.}
+    \label{fig:2.2}
+\end{figure}
+
+Here's a good news: this limitation can be overwhelmed by using a {\it multilayer perceptron}. It is simply a collection of usual perceptrons arrayed in layers. The network in \fig{2.1} we showed above is an example of a multilayer perceptron. Since OR returns \inline{false} only for $(0, 0)$ and NAND returns \inline{false} only for $(1, 1)$, by taking AND of their outputs, we get the final result \inline{true} only for $(0,1)$ or $(1, 0)$. Thus the multilayer perceptron shown in \fig{2.3} behaves as an XOR gate.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{10.5}{fig/fig_2_3.png}
+	\end{subfigure}
+    \caption{An XOR gate expressed by a multilayer perceptron. Note the same input $A$ are fed into both nodes in the first layer.}
+    \label{fig:2.3}
+\end{figure}
+
+\subsection{summary}
+
+In this section, we learned these two properties of perceptron:
+\begin{enumerate}
+\item A perceptron behaves differently for different parameters.
+\item A single perceptron cannot execute some sort of calculations. But is may be implemented by employing many perceptrons to create a multilayer perceptron.
+\end{enumerate}
+
+Consequently, if it is possible automatically to change the parameters in response to inputs and the corresponding outputs, a multilayer perceptron becomes an automatically configured and dynamically growing processor.
+
+%-------------------------------------%
+
+\enterr
+\section{Neural Network}
+
+\subsection{What is Neural Network?}
+
+As described in \sect{2.1}, the output $y$ of a perceptron follows \refe{2.3} and \refe{2.4}. These equations can be rewritten as
+\begineq
+y &=& h (S) \la{3.1} \\
+S &\equiv& \sum _i x_i w_i + b \la{3.2} \\
+h(x) &\equiv& \left\{ \beginarray{l} 0 \supp{x \leq 0} \\ 1 \supp{x > 0} \edarray \right. \la{3.3}
+\edeq
+
+where $h$ is a {\it step function}. In other words, the output is determined by taking the dot product $\bm{x} \cdot \bm{w}$, adding the bias $b$ to it and finally applying the {\it activation function} $h$. A perceptron uses a step function as the activation function.\\
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{10.5}{fig/fig_3_1.png}
+	\end{subfigure}
+    \caption{An example of a neural network. Though the network is drawn as a {\it fully connected} graph, meaning each node in a layer reads from all the nodes in the previous layer \cite{6}, an edge disappears when the corresponding weight is zero. The output layer need not consist of a single node.}
+    \label{fig:3.1}
+\end{figure}
+
+A {\it neural network} is similar to a multilayer perceptron but uses arbitrary activation functions, which means each node in the network generally reads and outputs real (i.e. non-boolean) values. Layers in a neural network are fallen into the following categories.
+\begin{enumerate}
+\item {\it Input layer}: the first layer
+\item {\it Hidden layers}: one or more layers placed in the middle of a network
+\item {\it Output layer}: the last layer
+\end{enumerate}
+
+\ \\[-3mm]\indent
+See \fig{3.1} for an example structure.
+
+\subsection{Activation Functions}
+
+Which activation function is to be used is dependent of a model and a target problem. It is usual we use some activation function for hidden layers and another one for the output layer. In this subsection, we introduce a few activation functions frequently used.
+
+\subsubsection{Step Function}
+
+{\it Step function} is a function defined by the formula
+\begineq
+h(x) \equiv \left\{ \beginarray{l} 0 \supp{x \leq 0} \\ 1 \supp{x > 0} \edarray \right.. \la{3.4}
+\edeq
+
+As we've seen before, this function is used as the activation function for a perceptron. See \fig{3.2} for the plot.
+
+\subsubsection{Sigmoid Function} \label{section:3.2.2}
+
+{\it Sigmoid function} is a function defined by the formula
+\begineq
+h(x) \equiv \frac{1}{1 + \exp (-x)} . \la{3.5}
+\edeq
+
+This is the smoother version of step function and still returns a value in $\com{0, 1}$. See \fig{3.2} for the plot.
+
+\subsubsection{ReLU} \label{section:3.2.3}
+
+Recently, {\it ReLU (rectified linear unit)} is often used as an activation function. It is defined as
+\begineq
+h(x) \equiv \text{max} (0, x). \la{3.6}
+\edeq
+
+See \fig{3.2} for the plot.
+
+\subsubsection{Identity Function}
+
+{\it Identity function} is a function which returns its input as-is.
+\begineq
+h(x) \equiv x \la{3.7}
+\edeq
+
+It is used as the activation function for the output layer for regression problems.
+
+\subsubsection{Softmax Function} \label{section:3.2.5}
+
+Finally, we introduce {\it softmax function} which is defined by the formula
+\begineq
+h(\bracc{x_i}) \equiv \frac{\exp(\bracc{x_i})}{\sum _i \exp(x_i)} \la{3.8}
+\edeq
+
+where $\exp()$ should be applied element-wise. It is used as the activation function for the output layer for multiclass classification problems, which will be dug into in \sect{4}.
+
+\newpage
+
+The most important property of softmax function is that the elements in a returned set ranges over $\com{0, 1}$ and sums up to unity. Therefore we may interpret each element as a probability. Since the function does not affect the magnitude relationship among inputs, and since calculating $\exp()$ is heavy, we usually replace the function with identity function in the inference phase.
+
+\enter
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{10}{fig/fig_3_2.eps}
+	\end{subfigure}
+    \caption{Plot of step function, sigmoid function and ReLU.}
+    \label{fig:3.2}
+\end{figure}
+
+\subsection{Loss Functions} label{section:3.5}
+
+To perform machine learning using a neural network, as described in \sect{1.2}, we shall compare the network's outputs and the labels (i.e. desired outputs), and modify live the parameters such as weights and biases according to the difference. Such comparisons are done by {\it loss functions}. A loss function reads both each output from the nodes in the output layer and the corresponding label to return a single scalar value indicating how the current outputs are bad. Thus one of the purposes of the learning phase is to minimize the loss function our model adopt.\\
+
+In this subsection, we simply introduce some loss functions. How we modify internal parameters by using the returned values is discussed in \sect{3.5}.
+
+\subsubsection{Mean Squared Error} \label{section:3.3.1}
+
+{\it Mean squared error} is defined by the formula
+\begineq
+E \equiv \half \sum _k (y_k - t_k)^2 \la{3.9}
+\edeq
+
+where $y_i$ is $i$th element of a network's output $\bmy$ and $t_i$ is $i$th element of the corresponding label $\bmt$.\\
+
+The problem is that a label is sometimes scalar while an array is output from a network. Assume we have the output "the input image is
+\begineq
+\brac{\beginarray{l} \text{a dog with a probability of 0.2} \\ \text{a cat with a probability of 0.5} \\ \text{a rat with a probability of 0.3} \edarray}." \nonumber
+\edeq
+
+and the label is just "the input image is a cat". In such cases, we forcibly convert a label to an array of the same dimensions. For example, "the input image is a cat" is rephrased as "the input image is
+\begineq
+\brac{\beginarray{l} \text{a dog with a probability of 0} \\ \text{a cat with a probability of 1.0} \\ \text{a rat with a probability of 0} \edarray}." \nonumber
+\edeq
+
+This is called {\it one-hot representation}.
+
+\subsubsection{Cross Entropy Error} \label{section:3.3.2}
+
+{\it Cross entropy error} is defined by the formula
+\begineq
+E \equiv - \sum _k t_k \ln (y_k) \la{3.10}
+\edeq
+
+where the meanings of $t_k$ and $y_k$ are described in \sect{3.3.1}.\\
+
+If $\bmt$ is an array of probabilities as in the example in \sect{3.3.1} and if $t_m = 1$, \refe{3.10} is simplified as
+\begineq
+E &=& - t_m \ln (y_m) \no
+&=& - \ln (y_m) \la{3.11}
+\edeq
+
+since $t_n = 0$ for all $n (\neq m)$. In this case, $E$ is dependent only of $y_m$ and takes a larger value as $y_m$ goes further away of $1.0$. \fig{3.3} illustrates this behavior.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{11}{fig/fig_3_3.eps}
+	\end{subfigure}
+    \caption{The behavior of cross entropy error when $t_m = 1$ and $t_n = 0$ for all $n (\neq m)$.}
+    \label{fig:3.3}
+\end{figure}
+
+\subsection{Forward Propagation} \label{section:3.4}
+
+When we do a calculation in a forward order, that is, from the input layer to the output layer, this process is called a {\it forward propagation}. It is mathematically written down by matrix operations.\\
+
+Assume we have two consecutive layers $l_1$ and $l_2$. Let $N$ be the number of the nodes in $l_1$, $M$ the number of the nodes in $l_2$, $I$ a $1 \times N$ matrix whose elements work as inputs, $W$ an $N \times M$ matrix whose $i$th column represents the weights of inputs for $i$th node in $l_2$, $\bmb$ a $1 \times M$ matrix whose $i$th element represents the bias of $i$th node in $l_2$, and $h$ the activation function. The structure is illustrated in \fig{3.4}. Then the output $L$ of the layer $l_2$ is calculated by
+\begineq
+L = h(I W + \bmb). \la{3.12}
+\edeq
+
+The operation $IW + \bmb$ is called a {\it affine transformation}. Since $L$ is of the length $M$, this itself is used as the input to the next layer $l_3$. Therefore, one forward propagation is processed just by repeatedly calculating \refe{3.12}.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{9}{fig/fig_3_4.png}
+	\end{subfigure}
+    \caption{Illustration of the matrix operation in \refe{3.12}.}
+    \label{fig:3.4}
+\end{figure}
+
+This formulation is easily extended to deal with multiple $I$s at a time. When the number of $I$ is $H$, we can prepare the new $H \times N$ matrix $I$ by vertically aligning each of the original $I$s. By this, $L$ also becomes an $H \times M$ matrix, and the definitions of part of activation/loss functions (e.g. softmax function) are naturally to be modified to process their inputs row-wise. Though this extension does not change the \href{https://en.wikipedia.org/wiki/Time\_complexity}{\it time complexity}, we will benefit from it because matrix arithmetic for larger matrices is handled fairly efficiently by techniques like {\it multithreaded programming}, {\it vectorization}\footnote{Vectorization makes it possible to process multiple values via a single instruction. Normally it is explicitly implemented by users, but with the \inline{-O3} flag \inline{g++} enables automatic vectorization.} or {\it GPGPU}\footnote{That is so-called GPU programming.}. The final problem we need tackle on is how to re-define the bias $\bmb$ to calculate the now broken $IW + \bmb$. Actually re-defining $\bmb$ is unnatural since the number of biases are not changed unless the number of nodes in a layer changes. Rather, it is more preferable that we {\it overload} the plus operator \inline{+}; the addition of the $N \times M$ matrix $A$ and the $1 \times M$ matrix $\bmb$ shall be calculated by performing the element-wise additions of $\bmb$ and each of the rows of $A$. For example,
+\begineq
+\brac{\beginarray{ccc} 1 & 2 & 3 \\ 4 & 5 & 6 \edarray} + \brac{\beginarray{ccc} -1 & -2 & -3 \edarray} &\coloneqq& \brac{\beginarray{ccc} 1 & 2 & 3 \\ 4 & 5 & 6 \edarray} + \brac{\beginarray{ccc} -1 & -2 & -3 \\ -1 & -2 & -3 \edarray} \no
+&=& \brac{\beginarray{ccc} 0 & 0 & 0 \\ 3 & 3 & 3 \edarray}. \la{3.13}
+\edeq
+
+Even when we have $H'$ inputs, it is usual we feed only $H$ of them, which is called a {\it minibatch}, into a network in a single forward propagation. One of the reasons is the \href{https://en.wikipedia.org/wiki/Space\_complexity}{\it spatial complexity}. Finally, $\frac{H'}{H}$ forward propagations are called an {\it epoch}. Completing calculations for an epoch we can say the $H'$ inputs are fully scanned except when we create each minibatch by randomly choosing $H$ inputs from them, in which case the certain input may not be scanned or may be so twice or more.
+
+\subsection{Steepest Descent} \label{section:3.5}
+
+As previously noticed in \sect{3.5}, now we explain one of the ways how to modify the internal parameters of a network in response to outputs of a loss function.\\
+
+{\it Gradient} is an array of partial derivatives with respect to each variable. For example, in $x-y$ plane, the gradient of $f(x, y) = y^3 + (x + y)^2 + 3x$ is given as
+\begineq
+\Delta f &\equiv& \brac{\dif{x}{f},\ \dif{y}{f}} \la{3.14} \\
+&=& \brac{2(x + y) + 3,\ 3y^2 + 2 (x + y)}. \la{3.15}
+\edeq
+
+The gradient can be interpreted as the "direction and rate of fastest increase" \cite{7}. Thus by calculating the gradient of the current position, moving a little in the opposite direction of the gradient, and repeating these two steps, we can find a local minimum. This algorithm is called {\it steepest descent} or {\it gradient descent}.\\
+
+Using {\it central difference}, the partial derivative $\dif{x}{f}$ is numerically calculated by
+\begineq
+\dif{x}{f} \simeq \frac{f(x + \eps) - f(x - \eps)}{2 \eps} \la{3.16}
+\edeq
+
+where $\eps$ is a small constant (e.g. $0.01$). By "moving a little in the opposite direction of the gradient $\Delta f(x, y)$", we mean the following assignments
+\begineq
+x &\gets& x - t \dif{x}{f} \la{3.17} \\
+y &\gets& y - t \dif{y}{f} \la{3.18}
+\edeq
+
+where $t$ is again a small value\footnote{It is said $t$ should not be too small. This is natural because, if we choose $t$ so, we move little in each step and thus tend to be caught in a shallow local minimum. We can jump over such minima by preparing a larger value for $t$, though.} called a {\it learning rate}.\\
+
+Since a loss function is a function of all of the internal parameters (i.e. the weights and the biases) of a network, we can modify the parameters by the steps shown in \alg{3.1}. And this is actually "learning". Whilst the parameters are automatically tweaked, the value of a learning rate have to be set by hand. Such an entity is called a {\it hyperparameter}. Even one execution of the algorithm is very heavy since it includes $2n$ forward propagations, each of which has the complexity of $O(N^3)$ according to \refe{3.12}, where $n$ is the number of the internal parameters. One important note is that it is usual $n$ is of the order $10^3$ or $10^4$ even for a simple network with a single hidden layer, making it difficult to use the algorithm practically for larger networks. In the next section, we introduce another method to calculate a gradient, which is much faster and whose result is almost the same as that given by central difference.
+
+\begin{algorithm}
+    \caption{Steepest Descent by Central Difference}
+    \begin{algorithmic}
+    \State $\eps \gets (\text{a small value})$
+    \State $t \gets (\text{a learning rate})$
+    \State $P \gets (\text{an array of all the internal parameters})$
+    \State $P' \gets (\text{an empty array})$
+    \State
+    \For {$p$ in $P$}
+        \State $p \gets p + \eps$
+        \State $E1 \gets (\text{the loss function})$ \Comment{$f(x+\eps)$}
+        \State $p \gets p - 2\eps$
+        \State $E2 \gets (\text{the loss function})$ \Comment{$f(x-\eps)$}
+        \State $p \gets p + \eps$
+        \State Push $\brac{p - t \frac{E_1 - E_2}{2 \eps}}$ to $P'$.
+    \EndFor
+    \State
+    \State $P \gets P'$
+    \end{algorithmic}
+    \label{algorithm:3.1}
+\end{algorithm}
+
+\newpage
+
+\subsection{Backward Propagation}
+
+\subsubsection{Chain Rule}
+
+\begin{__theorem}
+(\href{https://en.wikipedia.org/wiki/Chain\_rule}{\it Chain Rule})
+When we have $f = f(q_1, ..., q_M)$ and $q_i = q_i(s_1, ..., s_N)$, the formula below is satisfied.
+\begineq
+\dif{s_i}{f} = \sum _{k = 1} ^M \dif{q_k}{f} \dif{s_i}{q_k} \la{3.19}
+\edeq
+\theoremsymbol
+\label{theorem:3.1}
+\end{__theorem}
+
+\begin{__proof}
+Omitted.
+\qedsymbol
+\end{__proof}
+
+See \theorem{3.2} for the matrix version of this theorem.
+
+\subsubsection{Backpropagation} \label{section:3.6.2}
+
+Say we have the network shown in \fig{3.5} and would have $\dif{a}{z}, \dif{b}{z}$ and $\dif{c}{z}$. Using central difference, these derivatives are calculated completely independently. But are they truly independent? No. Taking into account $d, e, f$ are independent of $a, b, c$, the derivatives are broken by chain rule as
+\begineq
+\dif{a}{z} &=& \dif{y}{z} \dif{a}{y} \no
+&=& \dif{y}{z} \dif{x}{y} \dif{a}{x} \la{3.20} \\
+\dif{b}{z} &=& \dif{y}{z} \dif{x}{y} \dif{b}{x} \la{3.21} \\
+\dif{c}{z} &=& \dif{y}{z} \dif{x}{y} \dif{c}{x}. \la{3.22}
+\edeq
+
+Since they have $\dif{y}{z} \dif{x}{y}$ as the common factor, we can just calculate the factor once and reuse it to be multiplied by the local derivatives $\dif{a}{x}, \dif{b}{x}$ and $\dif{c}{x}$. And note $\dif{d}{z} = \dif{y}{z} \dif{d}{y}$ also includes the factor $\dif{y}{z}$ we've just seen.\\
+
+In general, the derivative of the intermediate/final output of a network with respect to some variable is calculated by moving backward with the initial value $1$ while calculating local derivatives and multiplying each result to the current value. In the example of $\dif{a}{x}$ above, the calculation proceeds as $1 \to 1 \cdot \dif{y}{z} \to 1 \cdot \dif{y}{z} \cdot \dif{x}{y} \to 1 \cdot \dif{y}{z} \cdot \dif{x}{y} \cdot \dif{a}{x}$. By memorizing intermediate results, they can be reused to calculate other derivatives. These processes are called {\it backpropagation} since the current result propagates backward, that is, in the direction from the output layer to the input layer.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{9}{fig/fig_3_5.png}
+	\end{subfigure}
+    \caption{A sample network.}
+    \label{fig:3.5}
+\end{figure}
+
+Actually we can even calculate the derivative with respect to the variables in a layer at the same time. Just aligning \refe{3.20} to \refe{3.22} we get
+\begineq
+\dif{\bma}{z} = \dif{y}{z} \dif{x}{y} \dif{\bma}{x} \la{3.23}
+\edeq
+
+where $\bma \equiv (a, b, c)$. Here we defined for any $N \times M$ matrix $A$ and a scalar $L$,
+\begineq
+\dif{A}{L} \equiv \brac{\beginarray{cccc} \pset{A_{11}} & \pset{A_{12}} & \cdots & \pset{A_{1M}} \\ \pset{A_{21}} & \naname & & \vdots \\ \vdots & & \naname & \vdots \\ \pset{A_{N1}} & \cdots & \cdots & \pset{A_{NM}} \edarray} L. \la{3.24}
+\edeq
+
+\subsubsection{Chain Rule (Matrix Version)}
+
+As described in \sect{3.4}, we use matrix arithmetic to process propagations in a network rather than scalar arithmetic appeared in \sect{3.6.2}. Thus it is useful if we extend \theorem{3.1} to the matrix version. 
+
+\begin{__theorem}
+({\it Chain Rule (Matrix Version)})
+When we have a scalar function $g = g(Z(Y(X)))$ where $X, Y, Z$ are matrices, the formula below is satisfied.
+\begineq
+\brac{\dif{X}{g}}_{lm} = \sum _{p,q} \dif{Y_{pq}}{g} \dif{X_{lm}}{Y_{pq}} \la{3.25}
+\edeq
+\theoremsymbol
+
+\label{theorem:3.2}
+\end{__theorem}
+
+\begin{__proof}
+\begineq
+\brac{\dif{X}{g}}_{lm} &=& \dif{X_{lm}}{g} \cuz{3.24} \no
+&=& \sum _{i,j} \dif{Z_{ij}}{g} \dif{X_{lm}}{Z_{ij}} \for{\text{chain rule}} \no
+&=& \sum _{i,j} \dif{Z_{ij}}{g} \sum _{p,q} \dif{Y_{pq}}{Z_{ij}} \dif{X_{lm}}{Y_{pq}} \for{\text{chain rule}} \no
+&=& \sum _{p,q} \brac{\sum _{i,j} \dif{Z_{ij}}{g} \dif{Y_{pq}}{Z_{ij}}} \dif{X_{lm}}{Y_{pq}} \no
+&=& \sum _{p,q} \dif{Y_{pq}}{g} \dif{X_{lm}}{Y_{pq}} \for{\text{chain rule}} \la{3.26}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\subsubsection{Gradient Check}
+
+Although backpropagation is by far the faster than central difference and the two methods theoretically give the same results, the latter is still used to check if an implementation of the former is correct since backpropagation is relatively complicated. This comparison is called a {\it gradient check}.
+
+\subsection{Using Backward Propagation} \label{section:3.7}
+
+Now let's put backward propagation into practice in a neural network. Hereafter we assume the network structure shown in \fig{3.6}.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{19}{fig/fig_3_6.png}
+	\end{subfigure}
+    \caption{The network used in \sect{3.7}. Information about the pointers (i.e. the last line in the figure) will be presented later in \sect{4.2}.}
+    \label{fig:3.6}
+\end{figure}
+
+Although conceptually each hidden layer consists both of an affine transformation and an activation function, and a loss function is not included in the definition of a network, for convenience we implement the following classes and assemble them to create a network.
+\begin{enumerate}
+\item
+\inline{AffineLayer} class deals with only the part of an affine transformation (\sect{3.4}).
+\item
+\inline{SigmoidLayer} class deals with sigmoid function (\sect{3.2.2}) as an activation function.
+\item
+\inline{ReluLayer} class deals with ReLU (\sect{3.2.3}) as an activation function.
+\item
+\inline{SoftmaxCrossEntropyLayer} class deals with softmax function (\sect{3.2.5}) as the activation function for an output layer and cross entropy error (\sect{3.3.2}) as a loss function.
+\end{enumerate}
+
+Let's dig into each of these classes in the reverse (i.e. backward) order.
+
+\subsubsection{SoftmaxCrossEntropyLayer class}
+
+In this subsubsection, only \theorem{3.4} is essential. Only eager readers may want to catch up \theorem{3.3} and \theorem{3.5}.
+
+\begin{__theorem}
+Let an array $X$ be a raw\footnote{The final output is created by applying softmax function (or whatever) to the "raw" output.} output of a network, an array $T$ a training data in one-hot representation, $h$ softmax function and $g$ cross entropy error.
+\begineq
+h(A) &=& \frac{\exp (A)}{\sum _i \exp (A_i)} \cuz{3.8} \la{3.27} \\
+g(A, B) &=& - \sum _k B_k \ln (A_k) \cuz{3.10} \la{3.28}
+\edeq
+
+Then $\pset{X}{g(h(X), T)}$ is given by
+\begineq
+\pset{X}{g(h(X), T)} = h(X) - T. \la{3.29}
+\edeq
+\theoremsymbol
+\label{theorem:3.3}
+\end{__theorem}
+
+Note the rhs represents the difference between the final output from a network and the training data. This natural result is not a product of chance. In fact, this is why we use cross entropy error with softmax function. Similarly, to get the same result, we use mean squared error when identity function is applied instead of softmax function. See \theorem{3.5} for the detail.
+
+\begin{__proof}
+We calculate the $l$th element of $\pset{X}{g(h(X), T)}$.
+\begineq
+\brac{\dif{X}{g}}_l &=& \dif{X_l}{g} \no
+&=& \sum _i \brac{\dif{h_i}{g} \dif{X_l}{h_i} + \dif{T_i}{g} \dif{X_l}{T_i}} \for{\text{chain rule}} \no
+&=& \sum _i \brac{\dif{h_i}{g} \dif{X_l}{h_i} + \dif{T_i}{g} \cdot 0} \no
+&=& \sum _i \dif{h_i}{g} \dif{X_l}{h_i} \la{3.30} \\
+&=& \sum _i \dif{h_i}{g} \pset{X_l}{\frac{\exp (X_i)}{\sum _k \exp (X_k)}} \cuz{3.27} \no
+&=& \sum _i \dif{h_i}{g} \bracc{\delta _{il} \frac{\exp (X_i)}{\sum _k \exp (X_k)} - \frac{\exp (X_i) \exp (X_l)}{\brac{\sum _k \exp (X_k)}^2}} \no
+&=& \sum _i \brac{- \pset{h_i} \sum _j T_j \ln (h_j)} \bracc{\delta _{il} \frac{\exp (X_i)}{\sum _k \exp (X_k)} - \frac{\exp (X_i) \exp (X_l)}{\brac{\sum _k \exp (X_k)}^2}} \cuz{3.28} \no
+&=& \sum _i \brac{- T_i \frac{1}{h_i}} \bracc{\delta _{il} \frac{\exp (X_i)}{\sum _k \exp (X_k)} - \frac{\exp (X_i) \exp (X_l)}{\brac{\sum _k \exp (X_k)}^2}} \no
+&=& \sum _i \brac{- T_i \frac{\sum _j \exp (X_j)}{\exp(X_i)}} \bracc{\delta _{il} \frac{\exp (X_i)}{\sum _k \exp (X_k)} - \frac{\exp (X_i) \exp (X_l)}{\brac{\sum _k \exp (X_k)}^2}} \cuz{3.27} \no
+&=& - T_l \frac{\sum _j \exp (X_j)}{\exp (X_l)} \frac{\exp (X_l)}{\sum _k \exp (X_k)} + \sum _i T_i \frac{\sum _j \exp (X_j)}{\exp (X_i)} \frac{\exp (X_i) \exp (X_l)}{\brac{\sum _k \exp (X_k)}^2} \no
+&=& - T_l + \sum _i T_i \frac{\exp (X_l)}{\sum _k \exp (X_k)} \no
+&=& - T_l + \frac{\exp (X_l)}{\sum _k \exp (X_k)} \for{\sum _i T_i = 1} \no
+&=& (h(X))_l - T_l \cuz{3.27} \la{3.31}
+\edeq
+
+Thus we get
+\begineq
+\pset{X}{g(h(X), T)} = h(X) - T. \la{3.32}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\begin{__theorem}
+Let a matrix $X$ be an array of raw outputs of a network, a matrix $T$ an array of training data in one-hot representation, $h$ softmax function and $g$ cross entropy error.
+\begineq
+\bracc{h(A)}_{ij} &=& \frac{\exp (A_{ij})}{\sum _k \exp (A_{ik})} \cuz{3.8} \la{3.33} \\
+g(A, B) &=& - \frac{1}{N} \sum _{i, j} B_{ij} \ln (A_{ij}) \cuz{3.10} \la{3.34}
+\edeq
+
+where $N$ is the number of the rows of $A$ (or $B$). Note $g$ is scalar.\\
+
+Then $\pset{X}{g(h(X), T)}$ is given by
+\begineq
+\pset{X}{g(h(X), T)} = \frac{1}{N} \brac{h(X) - T}. \la{3.35}
+\edeq
+\theoremsymbol
+\label{theorem:3.4}
+\end{__theorem}
+
+This theorem is the matrix version of \theorem{3.3}.
+
+\begin{__proof}
+We calculate the $(l,m)$ element of the matrix $\pset{X}{g(h(X), T)}$.
+\begineq
+\brac{\dif{X}{g}}_{lm} &=& \dif{X_{lm}}{g} \no
+&=& \sum _{i,j} \brac{\dif{h_{ij}}{g} \dif{X_{lm}}{h_{ij}} + \dif{T_{ij}}{g} \dif{X_{lm}}{T_{ij}}} \for{\text{chain rule}} \no
+&=& \sum _{i,j} \brac{\dif{h_{ij}}{g} \dif{X_{lm}}{h_{ij}} + \dif{T_{ij}}{g} \cdot 0} \no
+&=& \sum _{i,j} \dif{h_{ij}}{g} \dif{X_{lm}}{h_{ij}} \no
+&=& \sum _{i,j} \dif{h_{ij}}{g} \pset{X_{lm}}{\frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})}} \cuz{3.33} \no
+&=& \sum _{i,j} \dif{h_{ij}}{g} \bracc{\delta _{il} \delta _{jm} \frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})} - \frac{\exp (X_{ij}) \pset{X_{lm}} \sum _k \exp (X_{ik})}{\brac{\sum _k \exp (X_{ik})}^2}} \no
+&=& \sum _{i,j} \dif{h_{ij}}{g} \bracc{\delta _{il} \delta _{jm} \frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})} - \frac{\exp (X_{ij}) \delta _{il} \exp (X_{lm})}{\brac{\sum _k \exp (X_{ik})}^2}} \no
+&=& \sum _{i,j} \pset{h_{ij}} \brac{- \frac{1}{N} \sum _{p, q} T_{pq} \ln (h_{pq})} \bracc{\delta _{il} \delta _{jm} \frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})} - \frac{\exp (X_{ij}) \delta _{li} \exp (X_{lm})}{\brac{\sum _k \exp (X_{ik})}^2}} \cuz{3.34} \no
+&=& \sum _{i,j} \brac{- \frac{1}{N} T_{ij} \frac{1}{h_{ij}}} \bracc{\delta _{il} \delta _{jm} \frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})} - \frac{\exp (X_{ij}) \delta _{li} \exp (X_{lm})}{\brac{\sum _k \exp (X_{ik})}^2}} \no
+&=& \sum _{i,j} \brac{- \frac{1}{N} T_{ij} \frac{\sum _r \exp (X_{ir})}{\exp (X_{ij})}} \bracc{\delta _{il} \delta _{jm} \frac{\exp (X_{ij})}{\sum _k \exp (X_{ik})} - \frac{\exp (X_{ij}) \delta _{li} \exp (X_{lm})}{\brac{\sum _k \exp (X_{ik})}^2}} \cuz{3.33} \no
+&=& - \frac{1}{N} \brac{T_{lm} - \sum _{i,j} T_{ij} \frac{\delta _{li} \exp (X_{lm})}{\sum _k \exp (X_{ik})}} \no
+&=& - \frac{1}{N} \brac{T_{lm} - \sum _{j} T_{lj} \frac{\exp (X_{lm})}{\sum _k \exp (X_{lk})}} \no
+&=& - \frac{1}{N} \brac{T_{lm} - \frac{\exp (X_{lm})}{\sum _k \exp (X_{lk})}} \for{\sum _{j} T_{lj} = 1} \no
+&=& - \frac{1}{N} \brac{T_{lm} - h_{lm}} \cuz{3.33} \no
+&=& \frac{1}{N} \brac{h_{lm} - T_{lm}} \la{3.36}
+\edeq
+
+Thus we get
+\begineq
+\pset{X}{g(h(X), T)} = \frac{1}{N} \brac{h(X) - T}. \la{3.37}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\begin{__theorem}
+Let an array $X$ be a raw output of a network, an array $T$ a training data in one-hot representation, $h$ identity function and $g$ mean squared error.
+\begineq
+h(A) &=& A \cuz{3.7} \la{3.38} \\
+g(A, B) &=& \frac{1}{2} \sum _k (A_k - B_k)^2 \cuz{3.9} \la{3.39}
+\edeq
+
+Then $\pset{X}{g(h(X), T)}$ is given by
+\begineq
+\pset{X}{g(h(X), T)} = h(X) - T. \la{3.40}
+\edeq
+\theoremsymbol
+\label{theorem:3.5}
+\end{__theorem}
+
+The result is the same as \refe{3.29}.
+
+\begin{__proof}
+We calculate the $l$th element of $\pset{X}{g(h(X), T)}$.
+\begineq
+\brac{\dif{X}{g}}_l &=& \sum _i \dif{h_i}{g} \dif{X_l}{h_i} \cuz{3.30} \no
+&=& \sum _i \dif{h_i}{g} \dif{X_l}{X_i} \cuz{3.38} \no
+&=& \dif{h_l}{g} \no
+&=& \pset{h_l} \half \sum _k (h_k - T_k)^2 \cuz{3.39} \no
+&=& \half \sum _k 2 (h_k - T_k) \delta _{lk} \no
+&=& h_l - T_l \la{3.41}
+\edeq
+
+Thus we get 
+\begineq
+\pset{X}{g(h(X), T)} = h(X) - T. \la{3.42}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\subsubsection{SigmoidLayer class}
+
+\begin{__theorem}
+Let $g$ be the final output of a network, $I$ an input to an instance of \inline{SigmoidLayer} class and $Y$ the corresponding output of the instance of \inline{SigmoidLayer} class. Then the formula below is satisfied.
+\begineq
+\brac{\dif{I}{g}}_{lm} = \dif{Y_{lm}}{g} Y_{lm} (1 - Y_{lm}) \la{3.43}
+\edeq
+\theoremsymbol
+\label{theorem:3.6}
+\end{__theorem}
+
+\begin{__proof}
+\begineq
+\brac{\dif{I}{g}}_{lm} &=& \dif{I_{lm}}{g} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \dif{I_{lm}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \pset{I_{lm}} \frac{1}{1 + \exp (- I_{ij})} \cuz{3.5} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} (-1) \frac{- \exp (- I_{ij}) \delta _{il} \delta _{jm}}{\brac{1 + \exp (- I _{ij})}^2} \no
+&=& \dif{Y_{lm}}{g} \frac{\exp (- I_{lm})}{\brac{1 + \exp (- I _{lm})}^2} \no
+&=& \dif{Y_{lm}}{g} Y_{lm} \frac{\exp (- I_{lm})}{1 + \exp (- I _{lm})} \cuz{3.5} \no
+&=& \dif{Y_{lm}}{g} Y_{lm} (1 - Y_{lm}) \cuz{3.5} \la{3.44}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\subsubsection{ReluLayer class}
+
+\begin{__theorem}
+Let $g$ be the final output of a network, $I$ an input to an instance of \inline{ReluLayer} class and $Y$ the corresponding output of the instance of \inline{ReluLayer} class. Then
+\begineq
+\brac{\dif{I}{g}}_{lm} = \dif{Y_{lm}}{g} f_{lm} \la{3.45}
+\edeq
+
+where
+\begineq
+f_{ij} \equiv \left\{ \beginarray{l} 1\ \ \ (I_{ij} > 0) \\ 0\ \ \ (I_{ij} \leq 0) \edarray \right.. \la{3.46}
+\edeq
+\theoremsymbol
+\label{theorem:3.7}
+\end{__theorem}
+
+\begin{__proof}
+\begineq
+\brac{\dif{I}{g}}_{lm} &=& \dif{I_{lm}}{g} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \dif{I_{lm}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \delta _{il} \delta _{jm} f_{ij} \cuz{3.6} \no
+&=& \dif{Y_{lm}}{g} f_{lm} \la{3.47}
+\edeq
+\qedsymbol
+\end{__proof}
+
+\subsubsection{AffineLayer class}
+
+\begin{__theorem}
+Let $g$ be the final output of a network, $I$ an input to an instance of \inline{AffineLayer} class, $W$ the weights of the layer, $\bmb$ the biases of the layer and $Y$ the corresponding output of the layer. Then the formulae below are satisfied.
+\begineq
+\dif{W}{g} &=& \transpose{I} \dif{Y}{g} \la{3.48} \\
+\dif{I}{g} &=& \dif{Y}{g} \transpose{W} \la{3.49} \\
+\brac{\dif{\bmb}{g}}_l &=& \sum _i \dif{Y_{il}}{g} \la{3.50}
+\edeq
+\theoremsymbol
+\label{theorem:3.8}
+\end{__theorem}
+
+\begin{__proof}
+\refe{3.48} is proved as follows.
+\begineq
+\brac{\dif{W}{g}}_{lm} &=& \sum _{i, j} \dif{Y_{ij}}{g} \dif{W_{lm}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{W_{lm}} (IW + \bmb)_{ij} \cuz{3.12} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{W_{lm}} (IW)_{ij} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{W_{lm}} \sum _k I_{ik} W_{kj} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \delta _{jm} I_{il} \no
+&=& \sum _{i} \dif{Y_{im}}{g} I_{il} \no
+&=& \brac{\transpose{I} \dif{Y}{g}}_{lm} \la{3.51}
+\edeq
+
+\refe{3.49} is proved as follows.
+\begineq
+\brac{\dif{I}{g}}_{lm} &=& \sum _{i, j} \dif{Y_{ij}}{g} \dif{I_{lm}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{I_{lm}} (IW + \bmb)_{ij} \cuz{3.12} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{I_{lm}} (IW)_{ij} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{I_{lm}} \sum _k I_{ik} W_{kj} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \delta _{il} W_{mj} \no
+&=& \sum _{j} \dif{Y_{lj}}{g} W_{mj} \no
+&=& \brac{\dif{Y}{g} \transpose{W}}_{lm} \la{3.52}
+\edeq
+
+\refe{3.50} is proved as follows.
+\begineq
+\brac{\dif{\bmb}{g}}_{l} &=& \sum _{i, j} \dif{Y_{ij}}{g} \dif{\bmb_{l}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{\bmb _l} (IW + \bmb)_{ij} \cuz{3.12} \no
+&=& \sum _{i, j} \dif{Y_{ij}}{g} \pset{\bmb _l} \bmb _j \cuz{3.13} \no
+&=& \sum _i \dif{Y_{il}}{g} \la{3.53}
+\edeq
+\qedsymbol
+\end{__proof}
+
+%-------------------------------------%
+
+\newpage
+
+\section{Hand-Written Digit Recognition} \label{section:4}
+
+Finally let's implement a neural network to do hand-written digit recognition.
+
+\subsection{MNIST Dataset}
+
+{\it MNIST(Modified National Institute of Standards and Technology)} is a dataset of hand-written digits. This is the most famous dataset in the field of machine learning and often seen in theses as a dataset for testing. MNIST consists of images of digits $0,1,2,...,9$. $60000$ images are supplied for training and $10000$ images for testing. The dimensions of each image are $28 \times 28$ and it has only one channel (i.e. a black-and-white image). Each pixel has a value ranged over $[0..255]$ and the label like $7, 2$ or $1$ which indicates the correct answer is also supplied for each image.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{8.5}{fig/fig_4_1.png}
+	\end{subfigure}
+    \caption{Sample images from MNIST dataset. Cited from \cite{8}.}
+    \label{fig:4.1}
+\end{figure}
+
+See \href{../read\_mnist/README.md}{\inline{read\_mnist/README.md}} for the detail of the dataset structure.
+
+\subsection{Implementations} \label{section:4.2}
+
+We implement a network whose structure is shown in \fig{3.6}. We set the number of the nodes in the input layer to $28 \times 28 = 784$ and that of the output layer to $10$ since there are $10$ kinds of digits. We use the classes whose structure is shown in \fig{4.2} and handle all the layers though pointers of the type \inline{Layer *} stored in \inline{layer\_} array except the instance of \inline{SoftmaxCrossEntropyLayer} which is exceptionally pointed by \inline{last\_layer\_} of the type \inline{LastLayer *}.
+
+\subsection{Backpropagation vs Central Difference}
+
+To see how backpropagation is faster than central difference, we did a simple speed test. The parameters used are shown in \tab{4.2}. The results are shown in \tab{4.1} and \fig{4.3}. As \tab{4.1} indicates, backpropagation was surprisingly but expectedly about $1850$ times faster than central difference. And \fig{4.3} tells the results given by the two methods correspond exactly to each other, and tells overfitting (\sect{1.2}) didn't occur. It should also be noted the accuracy reached around good $85\ (\%)$ even though only a single hidden layer with only $10$ nodes were used.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|} \hline
+    method & elapsed time (sec) \\ \hline
+    backpropagation & $22.299$ \\ \hline
+    central difference & $41171.548$ \\ \hline
+    \end{tabular}
+    \caption{The result of the speed test. Backpropagation is much faster.}
+    \label{tab:4.1}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{11}{fig/fig_4_2.png}
+	\end{subfigure}
+    \caption{The structure of the classes.}
+    \label{fig:4.2}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|} \hline
+    \# of hidden layers & 1 \\ \hline
+    \# of nodes in each hidden layer & 10 \\ \hline
+    \# of images in a minibatch & 100 \\ \hline
+    \# of epochs calculated & 16 \\ \hline
+    $dx$ (used only by central difference) & $10^{-2}$ \\ \hline
+    learning rate & $10^{-1}$ \\ \hline
+    \end{tabular}
+    \caption{The parameters used for the speed test of backpropagation and central difference.}
+    \label{tab:4.2}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{12}{fig/fig_4_3.eps}
+	\end{subfigure}
+    \caption{The result of the speed test. The two methods give the same result.}
+    \label{fig:4.3}
+\end{figure}
+
+\subsection{Backpropagation with More Hidden Nodes}
+
+
+%-------------------------------------%
+
+\newpage
+
+%-------------------------------------%
+
+%-------------------------------------%
+
+\newpage
+\begin{thebibliography}{100}
+
+\bibitem{1}
+"Optimization problem" (\url{https://en.wikipedia.org/wiki/Optimization_problem})
+
+\bibitem{2}
+"Machine learning" (\url{https://en.wikipedia.org/wiki/Machine_learning})
+
+\bibitem{3}
+"What is the difference between machine learning and optimization?" (\url{https://www.quora.com/What-is-the-difference-between-machine-learning-and-optimization})
+
+\bibitem{4}
+"Boolean function" (\url{https://en.wikipedia.org/wiki/Boolean_function})
+
+\bibitem{5}
+"Logic gate" (\url{https://en.wikipedia.org/wiki/Logic_gate})
+
+\bibitem{6}
+"Artificial neural network" (\url{https://en.wikipedia.org/wiki/Artificial_neural_network#Organization})
+
+\bibitem{7}
+"Gradient" (\url{https://en.wikipedia.org/wiki/Gradient})
+
+\bibitem{8}
+"MNIST dataset" (\url{https://en.wikipedia.org/wiki/MNIST_database})
+
+\end{thebibliography}
+
+%-------------------------------------%
+
+\end{document}
+
+% vim: spell
+

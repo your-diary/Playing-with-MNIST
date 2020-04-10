@@ -1,0 +1,199 @@
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{braket}
+\usepackage{color}
+\usepackage{mathtools}
+\usepackage{changepage}
+\allowdisplaybreaks
+\predisplaypenalty=0
+\renewcommand{\thefootnote}{*\arabic{footnote}}
+\let\OldBm\bm
+\renewcommand{\bm}[1]{{\OldBm{#1}}}
+\newcommand{\beginpic}{}
+\newcommand{\edpic}{}
+\newcommand{\pic}[2]{\begin{center} \includegraphics[width=#1cm]{#2} \end{center}}
+\newcommand{\begineq}{\begin{eqnarray}}
+\newcommand{\bq}{\begin{eqnarray}}
+\newcommand{\edeq}{\end{eqnarray}}
+\newcommand{\eq}{\end{eqnarray}}
+\newcommand{\word}[1]{\mathrm{#1}}
+\newcommand{\no}{\nonumber \\}
+\newcommand{\noo}[1]{\nonumber \\[#1]}
+\newcommand{\labe}[1]{\label{eq:#1}}
+\newcommand{\la}[1]{\label{eq:#1}}
+\newcommand{\supp}[1]{\ \ \ \left(#1\right)}
+\newcommand{\for}[1]{\ \ \ \left(\because #1\right)}
+\newcommand{\cuz}[1]{\ \ \ (\because \text{eq.}(\ref{eq:#1}))}
+\newcommand{\ccuz}[2]{\ \ \ (\because \text{eq.}(\ref{eq:#1}), \text{eq.}(\ref{eq:#2}))}
+\newcommand{\cccuz}[3]{\ \ \ (\because \text{eq.}(\ref{eq:#1}), \text{eq.}(\ref{eq:#2}), \text{eq.}(\ref{eq:#3}))}
+\newcommand{\wolfram}{\ \ \ (\because \text{Mathematica})}
+\newcommand{\refe}[1]{eq.(\ref{eq:#1})}
+\newcommand{\righte}{\Rightarrow}
+\newcommand{\spacer}[1]{&　& #1\ }
+\newcommand{\counter}[1]{\setcounter{equation}{#1}}
+\newcommand{\up}{\uparrow}
+\newcommand{\down}{\downarrow}
+\newcommand{\til}{〜}
+\newcommand{\sct}[1]{\section{#1}}
+\newcommand{\ssct}[1]{\subsection{#1}}
+\newcommand{\sssct}[1]{\subsubsection{#1}}
+\newcommand{\enter}{　\\}
+\newcommand{\enterr}{　\\　\\　\\}
+\newcommand{\see}[1]{See "#1" for the detail.}
+\newcommand{\footnotesee}[1]{\footnote{\see{#1}}}
+\newcommand{\footnoteback}{\addtocounter{footnote}{-1}}
+\newcommand{\shiftfootnote}[1]{\addtocounter{footnote}{#1}}
+\newcommand{\dash}{------}
+\newcommand{\doubleminute}[1]{\symbol{"301D}#1\symbol{"301F}}
+\definecolor{mygray}{gray}{0.9}
+\newcommand{\inline}[1]{\colorbox{mygray}{{\tt #1}}}
+\newcommand{\he}{\hbar}
+\newcommand{\eps}{\epsilon}
+\newcommand{\nable}{\bm{\nabla}}
+\newcommand{\op}[1]{\mathcal{#1}}
+\newcommand{\expo}[1]{e^{#1}}
+\newcommand{\boltz}[1]{e^{- \beta #1}}
+\newcommand{\bboltz}[1]{e^{\beta #1}}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\ova}[1]{\frac{1}{#1}}
+\newcommand{\re}[1]{\text{Re} \brac{ #1 }}
+\newcommand{\im}[1]{\text{Im} \brac{ #1 }}
+\newcommand{\inte}[2]{\int _{#1} ^{#2}}
+\newcommand{\intinfty}{\int _{-\infty} ^{\infty}}
+\newcommand{\intere}[3]{\left[ #1 \right] _{#2} ^{#3}}
+\newcommand{\sume}[2]{\sum _{#1} ^{#2}}
+\newcommand{\prode}[2]{\prod _{#1} ^{#2}}
+\newcommand{\pare}{\partial}
+\newcommand{\dset}[2][]{\frac{d ^{#1}}{d #2 {}^{#1}}}
+\newcommand{\pareset}[2][]{\frac{\partial ^{#1}}{\partial #2 {}^{#1}}}
+\newcommand{\pset}[2][]{\frac{\partial ^{#1}}{\partial #2 {}^{#1}}}
+\newcommand{\difo}[3][]{\frac{d ^{#1} #3}{d #2 {}^{#1}}}
+\newcommand{\dif}[3][]{\frac{\partial ^{#1} #3}{\partial #2 {}^{#1}}}
+\newcommand{\beginarray}[1]{\begin{array}{#1}}
+\newcommand{\edarray}{\end{array}}
+\newcommand{\sita}{\ldots}
+\newcommand{\naname}{\ddots}
+\newcommand{\transpose}[1]{{}^t #1}
+\newcommand{\tp}[1]{{}^t #1}
+\newcommand{\inverse}[1]{#1 {}^{-1}}
+\newcommand{\inv}[1]{#1 {}^{-1}}
+\newcommand{\tr}[1]{\text{Tr} \left( #1 \right)}
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\norm}[1]{\left\| #1 \right\|}
+\newcommand{\brac}[1]{\left( #1 \right)}
+\newcommand{\brafra}[2]{\brac{\frac{#1}{#2}}}
+\newcommand{\sqrfra}[2]{\sqrt{\frac{#1}{#2}}}
+\newcommand{\com}[1]{\left[ #1 \right]}
+\newcommand{\comm}[1]{\left[ #1 \right]_-}
+\newcommand{\comp}[1]{\left[ #1 \right]_+}
+\newcommand{\ave}[1]{\left< #1 \right>}
+\newcommand{\aave}[1]{\left< \left< #1 \right> \right>}
+\newcommand{\bracc}[1]{\left\{ #1 \right\}}
+\newcommand{\bma}{\bm{a}}
+\newcommand{\bmb}{\bm{b}}
+\newcommand{\bmc}{\bm{c}}
+\newcommand{\bmd}{\bm{d}}
+\newcommand{\bme}{\bm{e}}
+\newcommand{\bmf}{\bm{f}}
+\newcommand{\bmg}{\bm{g}}
+\newcommand{\bmh}{\bm{h}}
+\newcommand{\bmi}{\bm{i}}
+\newcommand{\bmj}{\bm{j}}
+\newcommand{\bmk}{\bm{k}}
+\newcommand{\bml}{\bm{l}}
+\newcommand{\bmm}{\bm{m}}
+\newcommand{\bmn}{\bm{n}}
+\newcommand{\bmo}{\bm{o}}
+\newcommand{\bmp}{\bm{p}}
+\newcommand{\bmq}{\bm{q}}
+\newcommand{\bmr}{\bm{r}}
+\newcommand{\bms}{\bm{s}}
+\newcommand{\bmt}{\bm{t}}
+\newcommand{\bmu}{\bm{u}}
+\newcommand{\bmv}{\bm{v}}
+\newcommand{\bmw}{\bm{w}}
+\newcommand{\bmx}{\bm{x}}
+\newcommand{\bmy}{\bm{y}}
+\newcommand{\bmz}{\bm{z}}
+\newcommand{\bmA}{\bm{A}}
+\newcommand{\bmB}{\bm{B}}
+\newcommand{\bmC}{\bm{C}}
+\newcommand{\bmD}{\bm{D}}
+\newcommand{\bmE}{\bm{E}}
+\newcommand{\bmF}{\bm{F}}
+\newcommand{\bmG}{\bm{G}}
+\newcommand{\bmH}{\bm{H}}
+\newcommand{\bmI}{\bm{I}}
+\newcommand{\bmJ}{\bm{J}}
+\newcommand{\bmK}{\bm{K}}
+\newcommand{\bmL}{\bm{L}}
+\newcommand{\bmM}{\bm{M}}
+\newcommand{\bmN}{\bm{N}}
+\newcommand{\bmO}{\bm{O}}
+\newcommand{\bmP}{\bm{P}}
+\newcommand{\bmQ}{\bm{Q}}
+\newcommand{\bmR}{\bm{R}}
+\newcommand{\bmS}{\bm{S}}
+\newcommand{\bmT}{\bm{T}}
+\newcommand{\bmU}{\bm{U}}
+\newcommand{\bmV}{\bm{V}}
+\newcommand{\bmW}{\bm{W}}
+\newcommand{\bmX}{\bm{X}}
+\newcommand{\bmY}{\bm{Y}}
+\newcommand{\bmZ}{\bm{Z}}
+\newcommand{\bmalpha}{\bm{\alpha}}
+\newcommand{\bmbeta}{\bm{\beta}}
+\newcommand{\hata}{\hat{a}}
+\newcommand{\hatb}{\hat{b}}
+\newcommand{\hatc}{\hat{c}}
+\newcommand{\hatd}{\hat{d}}
+\newcommand{\hate}{\hat{e}}
+\newcommand{\hatf}{\hat{f}}
+\newcommand{\hatg}{\hat{g}}
+\newcommand{\hath}{\hat{h}}
+\newcommand{\hati}{\hat{i}}
+\newcommand{\hatj}{\hat{j}}
+\newcommand{\hatk}{\hat{k}}
+\newcommand{\hatl}{\hat{l}}
+\newcommand{\hatm}{\hat{m}}
+\newcommand{\hatn}{\hat{n}}
+\newcommand{\hato}{\hat{o}}
+\newcommand{\hatp}{\hat{p}}
+\newcommand{\hatq}{\hat{q}}
+\newcommand{\hatr}{\hat{r}}
+\newcommand{\hats}{\hat{s}}
+\newcommand{\hatt}{\hat{t}}
+\newcommand{\hatu}{\hat{u}}
+\newcommand{\hatv}{\hat{v}}
+\newcommand{\hatw}{\hat{w}}
+\newcommand{\hatx}{\hat{x}}
+\newcommand{\haty}{\hat{y}}
+\newcommand{\hatz}{\hat{z}}
+\newcommand{\hatA}{\hat{A}}
+\newcommand{\hatB}{\hat{B}}
+\newcommand{\hatC}{\hat{C}}
+\newcommand{\hatD}{\hat{D}}
+\newcommand{\hatE}{\hat{E}}
+\newcommand{\hatF}{\hat{F}}
+\newcommand{\hatG}{\hat{G}}
+\newcommand{\hatH}{\hat{H}}
+\newcommand{\hatI}{\hat{I}}
+\newcommand{\hatJ}{\hat{J}}
+\newcommand{\hatK}{\hat{K}}
+\newcommand{\hatL}{\hat{L}}
+\newcommand{\hatM}{\hat{M}}
+\newcommand{\hatN}{\hat{N}}
+\newcommand{\hatO}{\hat{O}}
+\newcommand{\hatP}{\hat{P}}
+\newcommand{\hatQ}{\hat{Q}}
+\newcommand{\hatR}{\hat{R}}
+\newcommand{\hatS}{\hat{S}}
+\newcommand{\hatT}{\hat{T}}
+\newcommand{\hatU}{\hat{U}}
+\newcommand{\hatV}{\hat{V}}
+\newcommand{\hatW}{\hat{W}}
+\newcommand{\hatX}{\hat{X}}
+\newcommand{\hatY}{\hat{Y}}
+\newcommand{\hatZ}{\hat{Z}}
