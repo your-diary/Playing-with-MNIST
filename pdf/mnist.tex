@@ -61,7 +61,8 @@ Last Modified: \DTMnow
 
 \enter
 \begin{abstract}
-In this tutorial paper, we learn what is and how to use Neural Network, which is an algorithm in the field of machine learning. We supply both theoretical explanations and a program which learns MNIST dataset to recognize hand-written digits. As for the program, it is written in C++ (not usual Python) without external library and the code structure is explained in detail. The final purpose is to create a web application in which a user draw a line and the program infers what the digit is. It should be easy to apply neural networks to another problem after reading this paper. All the source codes are available in github.com...
+In this tutorial paper, we learn what is and how to use Neural Network, which is an algorithm in the field of machine learning. We supply both theoretical explanations and a program which learns MNIST dataset to recognize hand-written digits. As for the program, it is written in C++ (not common Python) without external library and the code structure is explained in detail. We also provide a simple GUI application in which a user draws a digit using his/her mouse and the true digit the user intended is inferred. It should be easy to apply neural networks to other problems after reading this paper. All the source codes are available in \href{https://github.com/your-diary/Playing-with-MNIST}{https://github.com/your-diary/Playing-with-MNIST} under MIT license.
+
 \end{abstract}
 
 \enter
@@ -901,7 +902,7 @@ Let $g$ be the final output of a network, $I$ an input to an instance of \inline
 
 \section{Hand-Written Digit Recognition} \label{section:4}
 
-Finally let's implement a neural network to do hand-written digit recognition.
+Finally let's implement a neural network to do hand-written digit recognition. All the codes are available in \href{https://github.com/your-diary/Playing-with-MNIST}{https://github.com/your-diary/Playing-with-MNIST} under MIT license.
 
 \subsection{MNIST Dataset}
 
@@ -910,7 +911,7 @@ Finally let's implement a neural network to do hand-written digit recognition.
 \begin{figure}[H]
     \centering
     \begin{subfigure}[H]{1.0\textwidth}
-        \pic{8.5}{fig/fig_4_1.png}
+        \pic{8.0}{fig/fig_4_1.png}
 	\end{subfigure}
     \caption{Sample images from MNIST dataset. Cited from \cite{8}.}
     \label{fig:4.1}
@@ -949,10 +950,10 @@ To see how backpropagation is faster than central difference, we did a simple sp
 \begin{table}[H]
     \centering
     \begin{tabular}{|l|c|} \hline
-    \# of hidden layers & 1 \\ \hline
-    \# of nodes in each hidden layer & 10 \\ \hline
-    \# of images in a minibatch & 100 \\ \hline
-    \# of epochs calculated & 16 \\ \hline
+    \# of hidden layers & $1$ \\ \hline
+    \# of nodes in each hidden layer & $10$ \\ \hline
+    \# of images in a minibatch & $100$ \\ \hline
+    \# of epochs calculated & $16$ \\ \hline
     $dx$ (used only by central difference) & $10^{-2}$ \\ \hline
     learning rate & $10^{-1}$ \\ \hline
     \end{tabular}
@@ -965,12 +966,49 @@ To see how backpropagation is faster than central difference, we did a simple sp
     \begin{subfigure}[H]{1.0\textwidth}
         \pic{12}{fig/fig_4_3.eps}
 	\end{subfigure}
-    \caption{The result of the speed test. The two methods give the same result.}
+    \caption{The result of the speed test. "bp" in the figure means backpropagation and "cd" means central difference. We can tell the two methods give the same result.}
     \label{fig:4.3}
 \end{figure}
 
-\subsection{Backpropagation with More Hidden Nodes}
+\subsection{Backpropagation with More Hidden Nodes} \label{section:4.4}
 
+We did some calculations with more nodes in a layer for a longer time. We still used a single hidden layer though multiple hidden layers are fully-implemented\footnote{One can easily do a calculation with multiple hidden layers just by making \inline{num\_node\_of\_hidden\_layer[]} array have more than one elements.}. The parameters used are shown in \tab{4.3}. The results are plotted in \fig{4.4}. It tells the calculation time grows linearly and overfitting occurs since the increase rate of the accuracy for the testing data is smaller than that for the training data.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|} \hline
+    \# of hidden layers & $1$ \\ \hline
+    \# of nodes in each hidden layer & $50 - 300$ \\ \hline
+    \# of images in a minibatch & $100$ \\ \hline
+    \# of epochs calculated & $50$ \\ \hline
+    $dx$ (used only by central difference) & $10^{-2}$ \\ \hline
+    learning rate & $10^{-1}$ \\ \hline
+    \end{tabular}
+    \caption{The parameters used for the calculation in \sect{4.4}.}
+    \label{tab:4.3}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{12}{fig/fig_4_4.eps}
+	\end{subfigure}
+    \caption{The results of the calculation in \sect{4.4}.}
+    \label{fig:4.4}
+\end{figure}
+
+\subsection{Accuracy outside MNIST Dataset}
+
+An accuracy of about $95\ (\%)$ is clearly insufficient but not too bad. Though we've trained the network using the images in MNIST dataset, how high is the accuracy of the network for images {\bf outside} the dataset? To check the accuracy, we implemented a simple GUI application \inline{recognition\_of\_user\_supplied\_data/draw\_digit.py} with \inline{tkinter} in which a user draws a digit on a $28 \times 28$ canvas using his/her mouse. Every time the mouse button is released, the content of the canvas is fed into the network and the resultant inferred label is displayed inside the application window. See \fig{4.5} for a screenshot. We also provide a demo movie \inline{recognition\_of\_user\_supplied\_data/demo/demo.mp4}. Unfortunately, the accuracy seemed around $20\ (\%)$ or so. Whether this bad accuracy comes just from the difference of the data sources is under investigation.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{7}{fig/fig_4_5.png}
+	\end{subfigure}
+    \caption{A screenshot of \inline{draw\_digit.py}.}
+    \label{fig:4.5}
+\end{figure}
 
 %-------------------------------------%
 
@@ -981,6 +1019,7 @@ To see how backpropagation is faster than central difference, we did a simple sp
 %-------------------------------------%
 
 \newpage
+
 \begin{thebibliography}{100}
 
 \bibitem{1}
@@ -1009,7 +1048,9 @@ To see how backpropagation is faster than central difference, we did a simple sp
 
 \end{thebibliography}
 
-%-------------------------------------%
+\enter
+{\bf Further Reading}\\
+This paper is mainly based on the book \href{https://www.oreilly.co.jp/books/9784873117584/}{Koki Saitoh {\it "Deep Learning from Scratch"} (O'Reilly Japan, 2016)}. However note the book relatively relies on intuitive explanations and has little math. That's why we decided to write this paper.
 
 \end{document}
 

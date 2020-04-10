@@ -1,5 +1,6 @@
 using namespace std;
 #include <iostream>
+#include <sstream>
 
 #define NUM_THREAD 4
 
@@ -42,19 +43,80 @@ namespace prm {
 
 }
 
-int main() {
+int main(int argc, char **argv) {
+
+    //command-line arguments {
+
+    unsigned seed = prm::seed;
+    unsigned epoch = prm::epoch;
+    vector<unsigned> num_node_of_hidden_layer = prm::num_node_of_hidden_layer;
+
+    if (argc == 1) {
+        cout << "Usage: mnist.out <seed> [<epoch> [<num_node_of_hidden_layer>...] ]\n";
+        return 1;
+    }
+
+    if (argc >= 2) {
+        seed = atoi(argv[1]);
+    }
+    if (argc >= 3) {
+        epoch = atoi(argv[2]);
+    }
+    if (argc >= 4) {
+        num_node_of_hidden_layer.clear();
+        for (int i = 3; i < argc; ++i) {
+            num_node_of_hidden_layer.push_back(atoi(argv[i]));
+        }
+    }
+
+    #ifdef MNIST_DEBUG
+        cout << "seed = " << seed << "\n";
+        cout << "epoch = " << epoch << "\n";
+        cout << "num_node_of_hidden_layer = ";
+        vector_operation::print_array(num_node_of_hidden_layer);
+        cout << "\n";
+    #endif
+
+    //} command-line arguments
 
     mnist::MNIST m(
                     prm::activation_function_type,
                     prm::loss_function_type,
-                    prm::num_node_of_hidden_layer,
+                    num_node_of_hidden_layer,
                     prm::batch_size,
                     prm::should_normalize_pixel_value,
-                    prm::seed,
+                    seed,
                     prm::scale
                   );
 
-    m.training_(prm::epoch, prm::dx, prm::learning_rate);
+//     m.load_weight_and_bias_("weight_and_bias.dat");
+
+    if (!m) {
+        cout << "Some error occured.\n";
+        return 1;
+    }
+
+    m.training_(epoch, prm::dx, prm::learning_rate);
+
+    {
+        ostringstream oss;
+        oss << "result/weight_and_bias"
+            << "_" << seed
+            << "_" << epoch
+            << "_" << num_node_of_hidden_layer[0];
+        for (int i = 1; i < num_node_of_hidden_layer.size(); ++i) {
+            oss << "-" << num_node_of_hidden_layer[i];
+        }
+        oss << ".dat";
+
+        m.save_weight_and_bias_(oss.str().c_str());
+
+        if (!m) {
+            cout << "Some error occured.\n";
+            return 1;
+        }
+        cout << "Saved the weights and the biases to [ " << oss.str() << " ].\n";
+    }
 
     const double final_accuracy = m.testing_();
     cout << "Final Accuracy: " << final_accuracy << "(%)\n";
@@ -76,6 +138,9 @@ int main() {
     for (int i = 0; i < accuracy_history_for_testing_data.size(); ++i) {
         cout << i << " " << accuracy_history_for_testing_data[i] << "\n";
     }
+
+    cout.flush();
+    cerr.flush();
 
 }
 

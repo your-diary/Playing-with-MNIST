@@ -253,6 +253,19 @@
             return ret;
         }
 
+        template <typename T>
+        void print_array(const vector<T> &v) {
+            if (v.empty()) {
+                cout << "[]";
+                return;
+            }
+            cout << "[" << v[0];
+            for (int i = 1; i < v.size(); ++i) {
+                cout << ", " << v[i];
+            }
+            cout << "]\n";
+        }
+
     }
 
 #endif

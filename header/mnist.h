@@ -101,7 +101,7 @@
 
                 }
 
-                void initialize_weight_and_bias_(double scale) {
+                void initialize_weight_and_bias_(double scale, bool should_skip_initialization = false) {
 
                     //initializes `weight_` {
 
@@ -118,12 +118,16 @@
                     }
                     weight_.back() = vector<vector<double>>(num_node_of_hidden_layer_.back(), vector<double>(cnst::num_output_node));
 
-                    for (int i = 0; i < weight_.size(); ++i) {
-                        for (int j = 0; j < weight_[i].size(); ++j) {
-                            for (int k = 0; k < weight_[i][j].size(); ++k) {
-                                weight_[i][j][k] = normal_dist(mt) * scale;
+                    if (!should_skip_initialization) {
+
+                        for (int i = 0; i < weight_.size(); ++i) {
+                            for (int j = 0; j < weight_[i].size(); ++j) {
+                                for (int k = 0; k < weight_[i][j].size(); ++k) {
+                                    weight_[i][j][k] = normal_dist(mt) * scale;
+                                }
                             }
                         }
+
                     }
 
                     //} initializes `weight_`
@@ -289,7 +293,7 @@
 
             public:
                 
-                MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double scale)
+                MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double scale, bool should_skip_initialization = false)
                     :
                         num_node_of_hidden_layer_(num_node_of_hidden_layer),
                         layer_(2 * num_node_of_hidden_layer_.size() + 1),
@@ -301,9 +305,16 @@
                         error_flag_ = true;
                     }
 
-                    read_mnist_dataset_(should_normalize_pixel_value);
+                    if (!should_skip_initialization) {
 
-                    initialize_weight_and_bias_(scale);
+                        read_mnist_dataset_(should_normalize_pixel_value);
+
+                    } else { //This is useful **only when** you'd like to skip both `training_()` and `testing_()` and just call `infer_()`.
+                             //This mode is used from `infer_digit.cpp` for example.
+                        ;
+                    }
+
+                    initialize_weight_and_bias_(scale, should_skip_initialization);
 
                     //creates layers {
                     //This is the structure:
@@ -345,6 +356,7 @@
                         for (int i = 0; i < bias_.size(); ++i) {
                             cout << "bias_[" << i << "].size() = " << bias_[i].size() << "\n";
                         }
+                        cout << "\n";
                     #endif
 
                 }
@@ -493,6 +505,119 @@
 
                 }
 
+                vector<int> infer_(const vector<vector<double>> &minibatch) {
+
+                    last_layer_ -> change_calculation_mode_(layer::LastLayer::testing_);
+
+                    const vector<int> predicted_label = predict_(minibatch);
+                    return predicted_label;
+
+                }
+
+                void save_weight_and_bias_(const string &filename) {
+
+                    ofstream ofs(filename.c_str(), ios_base::binary);
+                    if (!ofs) {
+                        cout << "Couldn't open the file [ " << filename << " ] for write.\n";
+                        error_flag_ = true;
+                        return;
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n----- weight -----\n";
+                    #endif
+
+                    for (int i = 0; i < weight_.size(); ++i) {
+                        for (int j = 0; j < weight_[i].size(); ++j) {
+                            for (int k = 0; k < weight_[i][j].size(); ++k) {
+
+                                ofs.write(reinterpret_cast<char *>(&weight_[i][j][k]), sizeof(double));
+
+                                #if MNIST_DEBUG
+                                    cout << weight_[i][j][k] << " ";
+                                #endif
+
+                            }
+                        }
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n------------------\n\n----- bias -----\n";
+                    #endif
+
+                    for (int i = 0; i < bias_.size(); ++i) {
+                        for (int j = 0; j < bias_[i].size(); ++j) {
+
+                            ofs.write(reinterpret_cast<char *>(&bias_[i][j]), sizeof(double));
+                            cout << bias_[i][j] << " ";
+
+                        }
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n----------------\n\n";
+                    #endif
+
+                    ofs.close();
+
+                }
+
+                void load_weight_and_bias_(const string &filename) {
+
+                    ifstream ifs(filename.c_str(), ios_base::binary);
+                    if (!ifs) {
+                        cout << "Couldn't open the file [ " << filename << " ] for read.\n";
+                        error_flag_ = true;
+                        return;
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n----- weight -----\n";
+                    #endif
+
+                    for (int i = 0; i < weight_.size(); ++i) {
+                        for (int j = 0; j < weight_[i].size(); ++j) {
+                            for (int k = 0; k < weight_[i][j].size(); ++k) {
+
+                                ifs.read(reinterpret_cast<char *>(&weight_[i][j][k]), sizeof(double));
+
+                                #if MNIST_DEBUG
+                                    cout << weight_[i][j][k] << " ";
+                                #endif
+
+                            }
+                        }
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n------------------\n\n----- bias -----\n";
+                    #endif
+
+                    for (int i = 0; i < bias_.size(); ++i) {
+                        for (int j = 0; j < bias_[i].size(); ++j) {
+
+                            ifs.read(reinterpret_cast<char *>(&bias_[i][j]), sizeof(double));
+                            #if MNIST_DEBUG
+                                cout << bias_[i][j] << " ";
+                            #endif
+
+                        }
+                    }
+
+                    #if MNIST_DEBUG
+                        cout << "\n----------------\n\n";
+                    #endif
+
+                    if (!ifs) {
+                        cout << "An error occurred while reading the file [ " << filename << " ]. Perhaps the network size is different.\n";
+                        error_flag_ = true;
+                        return;
+                    }
+
+                    ifs.close();
+
+                }
+
                 vector<double> get_loss_function_history_() const {
                     return loss_function_history_;
                 }
@@ -503,6 +628,14 @@
 
                 vector<double> get_accuracy_history_for_testing_data_() const {
                     return accuracy_history_for_testing_data_;
+                }
+
+                bool error_() const {
+                    return error_flag_;
+                }
+
+                operator bool () const {
+                    return !error_flag_;
                 }
 
         };
