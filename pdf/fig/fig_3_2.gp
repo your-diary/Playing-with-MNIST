@@ -1,7 +1,6 @@
-set terminal qt size 640, 480 position 1000, 300
-# set terminal qt size 640, 480 position 280, 300
+set terminal qt size 960, 480 position 1000, 300
 
-# set terminal postscript eps color size 5, 3.5 colortext font "Helvetica, 14"
+# set terminal postscript eps color size 7.5, 3.5 colortext font "Helvetica, 14"
 # set terminal gif size 640, 480 font "Helvetica, 12" animate delay 10
 # set terminal png truecolor font "Helvetica, 12" size 640, 480
 
@@ -23,7 +22,7 @@ set key left
 # set logscale x
 # set logscale y
 
-set xrange [-2:2]
+set xrange [-4:4]
 set yrange [-0.05:1.5]
 
 # set timestamp "%Y/%m/%d (%a) %H:%M:%S"
