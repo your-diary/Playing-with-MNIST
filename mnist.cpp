@@ -2,16 +2,24 @@ using namespace std;
 #include <iostream>
 #include <sstream>
 
-#define NUM_THREAD 4
+#define NUM_THREAD 4 //number of threads used
 
 // #define NDEBUG
 
-#define MNIST_DEBUG 3
-// #define MNIST_GRADIENT_CHECK
+#define MNIST_DEBUG 3 //changes debug level
 
+// #define MNIST_GRADIENT_CHECK //does gradient check periodically
+
+//How gradient is calculated.
 //0: backpropagation
 //1: central difference
-// #define MNIST_GRADIENT_TYPE 0
+#define MNIST_GRADIENT_TYPE 0
+
+//How weights are initialized.
+//0: N(0, 1) multiplied by `stddev`.
+//1: Xavier initialization
+//2: He initialization
+#define MNIST_WEIGHT_INITIALIZATION_METHOD 2
 
 #include "header/mnist.h"
 
@@ -37,7 +45,7 @@ namespace prm {
 
     const unsigned seed = 1;
 
-    const double scale = 1;
+    const double stddev = 0.01;
 
     const unsigned epoch = 16;
 
@@ -90,7 +98,7 @@ int main(int argc, char **argv) {
                     prm::batch_size,
                     prm::should_normalize_pixel_value,
                     seed,
-                    prm::scale
+                    prm::stddev
                   );
 
 //     m.load_weight_and_bias_("weight_and_bias.dat");

@@ -103,11 +103,14 @@
 
                 }
 
-                void initialize_weight_and_bias_(double scale, bool should_skip_initialization = false) {
+                void initialize_weight_and_bias_(double stddev, bool should_skip_initialization = false) {
 
                     //initializes `weight_` {
 
                     mt19937 &mt = rand_.get_rand_generator_();
+
+                    //Generally, if a stochastic variable X follows the normal distribution N(a, b), then c*X also follows N(c*a, |c|*b) where c is an arbitrary constant.
+                    //Thus we can dynamically change the value of standard deviation by setting it to unity here and later multiplying an arbitrary value to the generated values.
                     normal_distribution<double> normal_dist(0, 1);
 
                     const unsigned num_layer_with_weight = num_node_of_hidden_layer_.size() + 1;
@@ -123,9 +126,14 @@
                     if (!should_skip_initialization) {
 
                         for (int i = 0; i < weight_.size(); ++i) {
+                            #if MNIST_WEIGHT_INITIALIZATION_METHOD == 1 //Xavier initialization
+                                stddev = sqrt(1.0 / weight_[i].size());
+                            #elif MNIST_WEIGHT_INITIALIZATION_METHOD == 2 //He initialization
+                                stddev = sqrt(2.0 / weight_[i].size());
+                            #endif
                             for (int j = 0; j < weight_[i].size(); ++j) {
                                 for (int k = 0; k < weight_[i][j].size(); ++k) {
-                                    weight_[i][j][k] = normal_dist(mt) * scale;
+                                    weight_[i][j][k] = normal_dist(mt) * stddev;
                                 }
                             }
                         }
@@ -295,7 +303,7 @@
 
             public:
                 
-                MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double scale, bool should_skip_initialization = false)
+                MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double stddev, bool should_skip_initialization = false)
                     :
                         num_node_of_hidden_layer_(num_node_of_hidden_layer),
                         layer_(2 * num_node_of_hidden_layer_.size() + 1),
@@ -316,7 +324,7 @@
                         ;
                     }
 
-                    initialize_weight_and_bias_(scale, should_skip_initialization);
+                    initialize_weight_and_bias_(stddev, should_skip_initialization);
 
                     //creates layers {
                     //This is the structure:
