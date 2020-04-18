@@ -6,8 +6,10 @@ SHELL := /bin/bash
 
 binary_name := mnist.out
 source_name := mnist.cpp
-header_list := header/mnist.h header/layer.h header/misc.h header/vector_operation.h
+header_list := header/mnist.h header/layer.h header/optimizer.h header/misc.h header/vector_operation.h
 dataset := read_mnist/data/image_train.dat
+
+override CXXFLAGS += -Wfatal-errors
 
 all: $(binary_name)
 all: override CXXFLAGS += -O3 -march=native

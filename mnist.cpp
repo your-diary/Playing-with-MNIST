@@ -17,14 +17,18 @@ using namespace std;
 
 namespace prm {
     
-    mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::sigmoid_;
-//     mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::relu_;
+//     mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::sigmoid_;
+    mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::relu_;
 
     mnist::MNIST::loss_function_type_ loss_function_type = mnist::MNIST::cross_entropy_;
 
-//     const vector<unsigned> num_node_of_hidden_layer({50, 30});
+//     optimizer::optimizer_type opt_type = optimizer::t_gradient_descent;
+//     optimizer::optimizer_type opt_type = optimizer::t_momentum;
+    optimizer::optimizer_type opt_type = optimizer::t_adagrad;
+
+    const vector<unsigned> num_node_of_hidden_layer({50, 30});
 //     const vector<unsigned> num_node_of_hidden_layer({50});
-    const vector<unsigned> num_node_of_hidden_layer({10});
+//     const vector<unsigned> num_node_of_hidden_layer({10});
 //     const vector<unsigned> num_node_of_hidden_layer({10, 10});
 
     const unsigned batch_size = 100;
@@ -96,7 +100,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    m.training_(epoch, prm::dx, prm::learning_rate);
+    m.training_(epoch, prm::dx, prm::learning_rate, prm::opt_type);
 
     {
         ostringstream oss;

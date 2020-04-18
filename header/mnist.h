@@ -11,7 +11,9 @@
     #include "./vector_operation.h"
     #include "./misc.h"
     #include "./layer.h"
+    #include "./optimizer.h"
     #include "../read_mnist/read_mnist.h"
+    #include <memory>
 
     namespace mnist {
 
@@ -385,13 +387,15 @@
                     }
                 }
 
-                void training_(unsigned epoch, double dx, double learning_rate) {
+                void training_(unsigned epoch, double dx, double learning_rate, optimizer::optimizer_type opt_type) {
 
                     last_layer_ -> change_calculation_mode_(layer::LastLayer::training_);
 
                     loss_function_history_.clear();
                     accuracy_history_for_training_data_.clear();
                     accuracy_history_for_testing_data_.clear();
+
+                    unique_ptr<optimizer::Optimizer> optimizer = optimizer::create_optimizer(learning_rate, weight_, bias_, opt_type);
                     
                     const unsigned num_loop_per_epoch = image_train_.size() / batch_size_;
                     const unsigned num_loop = num_loop_per_epoch * epoch;
@@ -434,15 +438,7 @@
                                 const vector<double> &dLdB = dLdB_array[i];
                             #endif
 
-                            for (int j = 0; j < weight_[i].size(); ++j) {
-                                for (int k = 0; k < weight_[i][j].size(); ++k) {
-                                    weight_[i][j][k] -= learning_rate * dLdW[j][k];
-                                }
-                            }
-
-                            for (int j = 0; j < bias_[i].size(); ++j) {
-                                bias_[i][j] -= learning_rate * dLdB[j];
-                            }
+                            optimizer -> optimize_(i, dLdW, dLdB);
 
                         }
 

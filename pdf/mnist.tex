@@ -9,6 +9,7 @@
 % \counter{}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage[title,titletoc,page]{appendix}
 
 \theoremstyle{definition}
 \newtheorem{__theorem}{Theorem}[section]
@@ -1015,6 +1016,27 @@ An accuracy of about $95\ (\%)$ in \fig{4.4} is clearly insufficient but not too
 \newpage
 
 %-------------------------------------%
+
+\renewcommand\thefigure{\thesection.\arabic{figure}}
+
+\begin{appendices}
+
+\section{}
+
+\subsection{Comparison of Optimizer}
+
+Sometimes other optimizers are faster than gradient descent.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{12}{fig/misc/optimizer_comparison.eps}
+	\end{subfigure}
+    \caption{Comparison of gradient descent, momentum and AdaGrad.}
+    \label{fig:A.1}
+\end{figure}
+
+\end{appendices}
 
 %-------------------------------------%
 
