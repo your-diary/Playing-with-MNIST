@@ -99,6 +99,152 @@
 
         };
 
+        //This layer performs batch normalization.
+        //This layer is to be inserted between `AffineLayer` and its activation function layer.
+        class BatchNormalizationLayer : public Layer {
+
+            private:
+
+                static constexpr double epsilon_ = 1e-7;
+
+                const unsigned batch_size_;
+                const unsigned input_size_;
+
+                //parameters
+                vector<double> gamma_;
+                vector<double> beta_;
+
+                vector<double> dLdGamma_;
+                vector<double> dLdBeta_;
+
+                //used in backpropagation
+                vector<double> stddev_; //\sqrt{\sigma ^2 + \eps}
+                vector<vector<double>> X_hat_;
+                vector<vector<double>> X_minus_mu_;
+
+                //used inside `optimize_gamma_and_beta_()`
+                static constexpr double delta_ = 1e-7; //to avoid zero-division
+                vector<double> h_for_gamma_;
+                vector<double> h_for_beta_;
+
+            public:
+
+                BatchNormalizationLayer(unsigned batch_size, unsigned input_size)
+                    :
+                    batch_size_(batch_size),
+                    input_size_(input_size),
+                    gamma_(input_size_, 1),
+                    beta_(input_size_, 0),
+                    dLdGamma_(input_size_),
+                    dLdBeta_(input_size_),
+                    stddev_(input_size_),
+                    X_hat_(batch_size_, vector<double>(input_size_)),
+                    X_minus_mu_(batch_size_, vector<double>(input_size_)),
+                    h_for_gamma_(input_size_, delta_),
+                    h_for_beta_(input_size_, delta_)
+                { }
+
+                vector<vector<double>> forward_propagation_(const vector<vector<double>> &forward_input) {
+
+                    assert(forward_input.size() == batch_size_);
+                    assert(forward_input[0].size() == input_size_);
+
+                    vector<double> mu(input_size_, 0);
+                    for (int j = 0; j < input_size_; ++j) {
+                        for (int i = 0; i < batch_size_; ++i) {
+                            mu[j] += forward_input[i][j];
+                        }
+                        mu[j] /= batch_size_;
+                    }
+
+                    for (int i = 0; i < batch_size_; ++i) {
+                        for (int j = 0; j < input_size_; ++j) {
+                            X_minus_mu_[i][j] = forward_input[i][j] - mu[j];
+                        }
+                    }
+
+                    vector<double> sigma_squared(input_size_, 0);
+                    for (int j = 0; j < input_size_; ++j) {
+                        for (int i = 0; i < batch_size_; ++i) {
+                            sigma_squared[j] += pow(X_minus_mu_[i][j], 2);
+                        }
+                        sigma_squared[j] /= batch_size_;
+                    }
+
+                    for (int j = 0; j < input_size_; ++j) {
+                        stddev_[j] = sqrt(sigma_squared[j] + epsilon_);
+                    }
+
+                    for (int i = 0; i < batch_size_; ++i) {
+                        for (int j = 0; j < input_size_; ++j) {
+                            X_hat_[i][j] = X_minus_mu_[i][j] / stddev_[j];
+                        }
+                    }
+
+                    return (gamma_ * X_hat_ + beta_);
+
+                }
+
+                vector<vector<double>> backward_propagation_(const vector<vector<double>> &backward_input) {
+
+                    for (int j = 0; j < input_size_; ++j) {
+                        dLdGamma_[j] = 0;
+                        dLdBeta_[j] = 0;
+                        for (int i = 0; i < batch_size_; ++i) {
+                            dLdGamma_[j] += backward_input[i][j] * X_hat_[i][j];
+                            dLdBeta_[j] += backward_input[i][j];
+                        }
+                    }
+
+                    vector<vector<double>> backward_output(batch_size_, vector<double>(input_size_));
+
+                    for (int j = 0; j < input_size_; ++j) {
+
+                        const double A = gamma_[j] / stddev_[j];
+                        const double B = A / batch_size_;
+                        const double C = B / pow(stddev_[j], 2);
+
+                        double D = 0;
+                        double E = 0;
+                        for (int k = 0; k < batch_size_; ++k) {
+                            D += backward_input[k][j];
+                            E += backward_input[k][j] * X_minus_mu_[k][j];
+                        }
+
+                        for (int i = 0; i < batch_size_; ++i) {
+                            backward_output[i][j] = A * backward_input[i][j] - B * D - C * E * X_minus_mu_[i][j];
+                        }
+
+                    }
+
+                    return backward_output;
+
+                }
+
+//                 const vector<double> & get_dLdGamma_() const {
+//                     return dLdGamma_;
+//                 }
+// 
+//                 const vector<double> & get_dLdBeta_() const {
+//                     return dLdBeta_;
+//                 }
+
+                //This function optimizes the values of `gamma_` and `beta_`, using AdaGrad.
+                //Ideally this function should instead be included in the classes defined in "./optimizer.h".
+                void optimize_gamma_and_beta_(double learning_rate) {
+
+                    h_for_gamma_ = h_for_gamma_ + element_wise_multiplication(dLdGamma_, dLdGamma_);
+                    h_for_beta_ = h_for_beta_ + element_wise_multiplication(dLdBeta_, dLdBeta_);
+
+                    for (int j = 0; j < input_size_; ++j) {
+                        gamma_[j] -= learning_rate * dLdGamma_[j] / h_for_gamma_[j];
+                        beta_[j] -= learning_rate * dLdBeta_[j] / h_for_beta_[j];
+                    }
+
+                }
+
+        };
+
         class SigmoidLayer : public Layer {
 
             private:

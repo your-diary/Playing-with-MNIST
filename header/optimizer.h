@@ -116,7 +116,7 @@
         class AdaGrad : public Optimizer {
 
             private:
-                
+
                 vector<vector<vector<double>>> h_for_weight_;
                 vector<vector<double>> h_for_bias_;
 

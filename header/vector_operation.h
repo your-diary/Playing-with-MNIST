@@ -281,6 +281,19 @@
             return lhs;
         }
 
+        //(array)*(matrix)
+        //element-wise multiplication (The lhs is replicated vertically to have the same dimensions as the rhs.)
+        template <typename T1, typename T2>
+        vector<vector<T2>> operator * (const vector<T1> &lhs, vector<vector<T2>> rhs) {
+            assert(lhs.size() == rhs[0].size());
+            for (int i = 0; i < rhs.size(); ++i) {
+                for (int j = 0; j < rhs[i].size(); ++j) {
+                    rhs[i][j] *= lhs[j];
+                }
+            }
+            return rhs;
+        }
+
         //(scalar)*(array)
         template <typename T1, typename T2>
         vector<T2> operator * (T1 lhs, vector<T2> rhs) {

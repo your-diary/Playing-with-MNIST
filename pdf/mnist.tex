@@ -1018,6 +1018,7 @@ An accuracy of about $95\ (\%)$ in \fig{4.4} is clearly insufficient but not too
 %-------------------------------------%
 
 \renewcommand\thefigure{\thesection.\arabic{figure}}
+\renewcommand\theequation{\thesection.\arabic{equation}}
 
 \begin{appendices}
 
@@ -1052,8 +1053,100 @@ Sometimes other optimizers are faster than gradient descent.
     \label{fig:A.2}
 \end{figure}
 
+\subsection{Batch Normalization}
 
+\subsubsection{Batch Normalization}
 
+We may want to do {\it batch normalization} after each affine transformation to normalize the results before passing them to the activation function layers. We implement it as \inline{BatchNormalizationLayer} class, which inherits \inline{Layer} class.\\
+
+Let $X$ be an input to an instance of \inline{BatchNormalizationLayer} class and $Y$ the corresponding output of the instance. Batch normalization is defined by the formulae below
+\begineq
+\mu _j &\equiv& \frac{1}{N} \sume{i = 1}{N} X_{ij} \la{A.1} \\
+\sigma^2 _j &\equiv& \frac{1}{N} \sume{i = 1}{N} (X_{ij} - \mu _j)^2 \la{A.2} \\
+\hat{X}_{ij} &\equiv& \frac{X_{ij} - \mu _j}{\sqrt{\sigma _j ^2 + \eps}} \la{A.3} \\
+Y_{ij} &=& \gamma _j \hat{X}_{ij} + \beta _j \la{A.4}
+\edeq
+
+, where $N$ is the number of inputs included in a minibatch, $\eps$ a small constant to avoid zero-division, $\bracc{\gamma _j}$ parameters whose initial value is $1$ and $\bracc{\beta_j}$ parameters whose initial value is $0$. The values of $\bracc{\gamma _j}$ and $\bracc{\beta _j}$ are modified in training phase as other parameters like weights. Note, as seen from the definition, batch normalization operates not row-wise but column-wise.
+
+\begin{__theorem}
+Let $g$ be the final output of a network, $X$ an input to an instance of \inline{BatchNormalizationLayer} class, $\bracc{\gamma _j}$ and $\bracc{\beta _j}$ the parameters specific to the instance, and $Y$ the corresponding output of the instance. Then the formulae below are satisfied.
+\begineq
+\brac{\dif{\gamma}{g}}_{m} &=& \sum _{i} \dif{Y_{im}}{g} \hat{X}_{im} \la{A.5} \\
+\brac{\dif{\beta}{g}}_{m} &=& \sum _{i} \dif{Y_{im}}{g} \la{A.6} \\
+\brac{\dif{X}{g}}_{lm} &=& \gamma _m \dif{Y_{lm}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} - \frac{1}{N} \gamma _m \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} \sum _{i} \dif{Y_{im}}{g} \brac{1 + (X_{im} - \mu _m) \frac{1}{\sigma _m ^2 + \eps} (X_{lm} - \mu _m)} \no
+\la{A.7}
+\edeq
+\theoremsymbol
+\label{theorem:A.1}
+\end{__theorem}
+
+\begin{__proof}
+Let's first deal with \refe{A.5} and \refe{A.6}. They are proved as follows.
+
+\begineq
+\brac{\dif{\gamma}{g}}_{m} &=& \dif{\gamma_{m}}{g} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \dif{\gamma_{m}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \pset{\gamma_{m}} \brac{\gamma _j \hat{X}_{ij} + \beta _j} \cuz{A.4} \la{A.8} \\
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \delta _{jm} \hat{X}_{ij} \no
+&=& \sum _{i} \dif{Y_{im}}{g} \hat{X}_{im} \la{A.9}
+\edeq
+
+\begineq
+\brac{\dif{\beta}{g}}_{m} &=& \sum _{i,j} \dif{Y_{ij}}{g} \pset{\beta_{m}} \brac{\gamma _j \hat{X}_{ij} + \beta _j} \cuz{A.8} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \delta _{jm} \no
+&=& \sum _{i} \dif{Y_{im}}{g} \la{A.10}
+\edeq
+
+Next we do some pre-calculations to prove \refe{A.7}.
+\begineq
+\pset{X_{lm}} \mu _j &=& \pset{X_{lm}} \frac{1}{N} \sume{i = 1}{N} X_{ij} \cuz{A.1} \no
+&=& \frac{1}{N} \delta _{jm} \la{A.11} \\
+\no
+\pset{X_{lm}} \mu _j ^2 &=& 2 \mu _j \pset{X_{lm}} \mu _j \no
+&=& 2 \frac{1}{N} \sume{i = 1}{N} X_{ij} \frac{1}{N} \delta _{jm} \ccuz{A.1}{A.11} \no
+&=& \frac{2}{N^2} \delta _{jm} \sume{i = 1}{N} X_{ij} \la{A.12} \\
+\no
+\pset{X_{lm}} \sigma _j^2 &=& \pset{X_{lm}} \frac{1}{N} \sume{i = 1}{N} (X_{ij} - \mu _j)^2 \cuz{A.2} \no
+&=& \frac{1}{N} \sume{i = 1}{N} \pset{X_{lm}} \brac{X_{ij} ^2 - 2 X_{ij} \mu _j + \mu _j ^2} \no
+&=& \frac{1}{N} \sume{i = 1}{N} \brac{2 X_{ij} \delta _{il} \delta _{jm} - 2 X_{ij} \frac{1}{N} \delta _{jm} - 2 \mu _j \delta _{il} \delta _{jm} + \frac{2}{N^2} \delta _{jm} \sume{k = 1}{N} X_{kj}} \ccuz{A.11}{A.12} \no
+&=& \frac{1}{N} \brac{2 X_{lj} \delta _{jm} - 2 \frac{1}{N} \delta _{jm} \sume{i = 1}{N} X_{ij} - 2 \mu _j \delta _{jm} + \frac{2}{N} \delta _{jm} \sume{k = 1}{N} X_{kj}} \no
+&=& \frac{2}{N} \delta _{jm} (X_{lj} - \mu _j) \la{A.13} \\
+\no
+\pset{X_{lm}} \hat{X}_{ij} &=& \pset{X_{lm}} \frac{X_{ij} - \mu_j}{\sqrt{\sigma ^2_j + \eps}} \cuz{A.3} \no
+&=& (X_{ij} - \mu _j) \brac{- \half} \frac{\pset{X_{lm}} \sigma _j ^2}{\brac{\sigma _j ^2 + \eps}^\frac{3}{2}} + \frac{1}{\sqrt{\sigma _j ^2 + \eps}} \pset{X_{lm}} \brac{X_{ij} - \mu _j} \no
+&=& (X_{ij} - \mu _j) \brac{- \half} \frac{1}{\brac{\sigma _j ^2 + \eps}^\frac{3}{2}} \frac{2}{N} \delta _{jm} (X_{lj} - \mu _j) + \frac{1}{\sqrt{\sigma _j ^2 + \eps}} \brac{\delta _{il} \delta _{jm} - \frac{1}{N} \delta _{jm}} \ccuz{A.11}{A.13} \no
+&=& \delta _{jm} \frac{1}{\sqrt{\sigma _j ^ 2 + \eps}} \bracc{ (X_{ij} - \mu _j) \brac{- \half} \frac{1}{\sigma _j ^2 + \eps} \frac{2}{N} (X_{lj} - \mu _j) + \brac{\delta _{il} - \frac{1}{N}} } \no
+&=& \delta _{jm} \frac{1}{\sqrt{\sigma _j ^ 2 + \eps}} \bracc{ \delta _{il} - \frac{1}{N} \brac{1 + (X_{ij} - \mu _j) \frac{1}{\sigma _j ^2 + \eps} (X_{lj} - \mu _j)} } \la{A.14}
+\edeq
+
+Finally \refe{A.7} is proved as follows.
+\begineq
+\brac{\dif{X}{g}}_{lm} &=& \dif{X_{lm}}{g} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \dif{X_{lm}}{Y_{ij}} \cuz{3.25} \no
+&=& \sum _{i,j} \dif{Y_{ij}}{g} \pset{X_{lm}} \brac{\gamma _j \hat{X}_{ij} + \beta _j} \cuz{A.4} \no
+&=& \sum _{i,j} \gamma _j \dif{Y_{ij}}{g} \pset{X_{lm}} \hat{X}_{ij} \no
+&=& \sum _{i,j} \gamma _j \dif{Y_{ij}}{g} \delta _{jm} \frac{1}{\sqrt{\sigma _j ^ 2 + \eps}} \bracc{ \delta _{il} - \frac{1}{N} \brac{1 + (X_{ij} - \mu _j) \frac{1}{\sigma _j ^2 + \eps} (X_{lj} - \mu _j)} } \cuz{A.14} \no
+&=& \sum _{i} \gamma _m \dif{Y_{im}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} \bracc{ \delta _{il} - \frac{1}{N} \brac{1 + (X_{im} - \mu _m) \frac{1}{\sigma _m ^2 + \eps} (X_{lm} - \mu _m)} } \no
+&=& \gamma _m \dif{Y_{lm}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} - \frac{1}{N} \sum _{i} \gamma _m \dif{Y_{im}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} \brac{1 + (X_{im} - \mu _m) \frac{1}{\sigma _m ^2 + \eps} (X_{lm} - \mu _m)} \no
+&=& \gamma _m \dif{Y_{lm}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} - \frac{1}{N} \gamma _m \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} \sum _{i} \dif{Y_{im}}{g} \brac{1 + (X_{im} - \mu _m) \frac{1}{\sigma _m ^2 + \eps} (X_{lm} - \mu _m)} \no
+% &=& \gamma _m \dif{Y_{lm}}{g} \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} - \frac{1}{N} \gamma _m \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}} \sum _{i} \dif{Y_{im}}{g} - \frac{1}{N} \gamma _m \frac{1}{\sqrt{\sigma _m ^ 2 + \eps}^3} (X_{lm} - \mu _m) \sum _{i} \dif{Y_{im}}{g} (X_{im} - \mu _m) \no
+\la{ap5}
+\edeq
+
+\qedsymbol
+\end{__proof}
+
+\subsubsection{Result}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{12}{fig/misc/batch_normalization_comparison.eps}
+	\end{subfigure}
+    \caption{Comparison of networks with or without batch normalization.}
+    \label{fig:A.3}
+\end{figure}
 
 \end{appendices}
 

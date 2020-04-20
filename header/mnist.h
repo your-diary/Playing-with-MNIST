@@ -1,7 +1,9 @@
 //Requirements
-//1. `MNIST_GRADIENT_TYPE` macro is defined. `0` uses backpropagation to calculate gradient and `1` uses central difference.
+//1. `MNIST_GRADIENT_TYPE` macro shall be defined. `0` uses backpropagation to calculate gradient and `1` uses central difference.
 //2. `MNIST_DEBUG` macro is optionally defined. Then debugging information is additionally output.
 //3. `MNIST_GRADIENT_CHECK` macro is optionally defined. Then gradient check is done periodically. This is only useful when you'd like to check if the implementation is correct.
+//4. `MNIST_WEIGHT_INITIALIZATION_METHOD` macro is optionally defined, which determines how weights are initialized. `0` uses N(0, 1) multiplied by `stddev`, `1` performs Xavier initialization and `2` performs He initialization.
+//5. `MNIST_ENABLE_BATCH_NORMALIZATION` macro shall be defined. `0` disables batch normalization and `1` enables it.
 
 #ifndef is_mnist_included
 
@@ -28,6 +30,15 @@
             constexpr double max_pixel_value = 255;
 
             const string dataset_directory = "./read_mnist/data/";
+
+            //The number of layers which as a whole constitute a single hidden layer.
+            //For example, if each hidden layer consists of affine transformation, batch normalization and activation, then the value is 3.
+            //If we omit batch normalization, then the value is 2.
+            #if MNIST_ENABLE_BATCH_NORMALIZATION == 0
+                constexpr unsigned num_layer_in_hidden_layer = 2;
+            #else
+                constexpr unsigned num_layer_in_hidden_layer = 3;
+            #endif
 
         }
 
@@ -244,8 +255,8 @@
                         const vector<double> &dLdB_1 = dLdB_numerical[i];
 
                         //gradient calculated by backpropagation
-                        const vector<vector<double>> &dLdW_2 = (dynamic_cast<layer::AffineLayer *>(layer_[2 * i]) -> get_dLdW_());
-                        const vector<double> &dLdB_2 = (dynamic_cast<layer::AffineLayer *>(layer_[2 * i]) -> get_dLdB_());
+                        const vector<vector<double>> &dLdW_2 = (dynamic_cast<layer::AffineLayer *>(layer_[cnst::num_layer_in_hidden_layer * i]) -> get_dLdW_());
+                        const vector<double> &dLdB_2 = (dynamic_cast<layer::AffineLayer *>(layer_[cnst::num_layer_in_hidden_layer * i]) -> get_dLdB_());
 
                         num_dLdW_element += weight_[i].size() * weight_[i][0].size();
                         num_dLdB_element += bias_[i].size();
@@ -306,7 +317,7 @@
                 MNIST(activation_function_type_ activation_function_type, loss_function_type_ loss_function_type, const vector<unsigned> &num_node_of_hidden_layer, unsigned batch_size, bool should_normalize_pixel_value, mt19937::result_type seed, double stddev, bool should_skip_initialization = false)
                     :
                         num_node_of_hidden_layer_(num_node_of_hidden_layer),
-                        layer_(2 * num_node_of_hidden_layer_.size() + 1),
+                        layer_(cnst::num_layer_in_hidden_layer * num_node_of_hidden_layer_.size() + 1),
                         batch_size_(batch_size),
                         rand_(seed)
                 {
@@ -336,16 +347,29 @@
                     // 
                     //                                          elements of `layer_`                                                    `last_layer_`
                     // 
+                    //, or if `MNIST_ENABLE_BATCH_NORMALIZATION` macro is set to `1`, "[batch normalization]"s are additionally inserted just after "[affine]"s.
 
                     for (int i = 0; i < layer_.size(); ++i) {
-                        if (i % 2 == 0) {
-                            layer_[i] = new layer::AffineLayer(weight_[i / 2], bias_[i / 2]);
+                        if (i % cnst::num_layer_in_hidden_layer == 0) {
+                            layer_[i] = new layer::AffineLayer(weight_[i / cnst::num_layer_in_hidden_layer], bias_[i / cnst::num_layer_in_hidden_layer]);
                         } else {
-                            if (activation_function_type == sigmoid_) {
-                                layer_[i] = new layer::SigmoidLayer;
-                            } else if (activation_function_type == relu_) {
-                                layer_[i] = new layer::ReluLayer;
-                            }
+
+                            #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
+                                if (i % cnst::num_layer_in_hidden_layer == 1) {
+                                    layer_[i] = new layer::BatchNormalizationLayer(batch_size_, weight_[i / cnst::num_layer_in_hidden_layer][0].size());
+                                } else {
+                            #endif
+
+                                    if (activation_function_type == sigmoid_) {
+                                        layer_[i] = new layer::SigmoidLayer;
+                                    } else if (activation_function_type == relu_) {
+                                        layer_[i] = new layer::ReluLayer;
+                                    }
+
+                            #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
+                                }
+                            #endif
+
                         }
                     }
 
@@ -434,13 +458,13 @@
                             }
                         #endif
 
-                        //modifies parameters (gradient descent) {
+                        //modifies parameters {
 
                         for (int i = 0; i < weight_.size(); ++i) {
 
                             #if MNIST_GRADIENT_TYPE == 0
-                                const vector<vector<double>> &dLdW = (dynamic_cast<layer::AffineLayer *>(layer_[2 * i]) -> get_dLdW_());
-                                const vector<double> &dLdB = (dynamic_cast<layer::AffineLayer *>(layer_[2 * i]) -> get_dLdB_());
+                                const vector<vector<double>> &dLdW = (dynamic_cast<layer::AffineLayer *>(layer_[cnst::num_layer_in_hidden_layer * i]) -> get_dLdW_());
+                                const vector<double> &dLdB = (dynamic_cast<layer::AffineLayer *>(layer_[cnst::num_layer_in_hidden_layer * i]) -> get_dLdB_());
                             #elif MNIST_GRADIENT_TYPE == 1
                                 const vector<vector<double>> &dLdW = dLdW_array[i];
                                 const vector<double> &dLdB = dLdB_array[i];
@@ -450,7 +474,15 @@
 
                         }
 
-                        //} modifies parameters (gradient descent)
+                        #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
+                            for (int i = 0; i < layer_.size(); ++i) {
+                                if (i % cnst::num_layer_in_hidden_layer == 1) {
+                                    dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> optimize_gamma_and_beta_(learning_rate);
+                                }
+                            }
+                        #endif
+
+                        //} modifies parameters
 
                         //checks accuracy {
 

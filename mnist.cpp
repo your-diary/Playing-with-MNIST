@@ -21,6 +21,8 @@ using namespace std;
 //2: He initialization
 #define MNIST_WEIGHT_INITIALIZATION_METHOD 2
 
+#define MNIST_ENABLE_BATCH_NORMALIZATION 1 //1 enables batch normalization and 0 disables it.
+
 #include "header/mnist.h"
 
 namespace prm {
@@ -51,7 +53,7 @@ namespace prm {
 
     const double dx = 1e-2;
 
-    const double learning_rate = 1e-1;
+    const double learning_rate = 1e-2;
 
 }
 
