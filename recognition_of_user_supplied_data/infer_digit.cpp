@@ -7,7 +7,14 @@ using namespace std;
 
 #define NUM_THREAD 4
 
-#define NDEBUG
+// #define NDEBUG
+#define MNIST_DEBUG 0
+
+#define MNIST_ENABLE_BATCH_NORMALIZATION 1
+
+//unused macros
+#define MNIST_GRADIENT_TYPE 0
+#define MNIST_WEIGHT_INITIALIZATION_METHOD 0
 
 #include "../header/mnist.h"
 
@@ -19,26 +26,29 @@ namespace cnst {
 
 namespace prm {
     
-    mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::sigmoid_;
+    mnist::MNIST::activation_function_type_ activation_function_type = mnist::MNIST::relu_;
 
     mnist::MNIST::loss_function_type_ loss_function_type = mnist::MNIST::cross_entropy_;
 
-    const vector<unsigned> num_node_of_hidden_layer({300});
+    const vector<unsigned> num_node_of_hidden_layer({100, 100, 100, 100, 100});
 
-    const char *parameter_file = "../result/seed_0_epoch_50/weight_and_bias_0_50_300.dat";
+    const char *parameter_file = "../result/weight_and_bias_0_25_100-100-100-100-100.dat";
 
     //unused parameters
     const unsigned batch_size = 100;
     const bool should_normalize_pixel_value = true;
     const unsigned seed = 1;
     const double scale = 1;
-    const unsigned epoch = 50;
+    const unsigned epoch = 3;
     const double dx = 1e-2;
     const double learning_rate = 1e-1;
+    optimizer::optimizer_type opt_type = optimizer::t_adagrad;
 
 }
 
 int main() {
+    
+    mnist::cnst::dataset_directory = "../read_mnist/data/";
 
     mnist::MNIST m(
                     prm::activation_function_type,
@@ -48,10 +58,15 @@ int main() {
                     prm::should_normalize_pixel_value,
                     prm::seed,
                     prm::scale,
-                    /* should_skip_initialization = */ true
+                    /* should_skip_initialization = */ 0
                   );
 
-    m.load_weight_and_bias_(prm::parameter_file);
+    m.load_parameters_(prm::parameter_file);
+
+//     //for debug (requirements: `should_skip_initialization` == 0)
+//     m.training_(prm::epoch, prm::dx, prm::learning_rate, prm::opt_type);
+//     const double accuracy = m.testing_();
+//     cout << "Accuracy: " << accuracy << "(%)\n";
 
     if (!m) {
         cerr << "Some error occured.\n";

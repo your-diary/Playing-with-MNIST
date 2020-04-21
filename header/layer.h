@@ -105,7 +105,7 @@
 
             private:
 
-                static constexpr double epsilon_ = 1e-7;
+                static const double epsilon_;
 
                 const unsigned batch_size_;
                 const unsigned input_size_;
@@ -123,7 +123,7 @@
                 vector<vector<double>> X_minus_mu_;
 
                 //used inside `optimize_gamma_and_beta_()`
-                static constexpr double delta_ = 1e-7; //to avoid zero-division
+                static const double delta_; //to avoid zero-division
                 vector<double> h_for_gamma_;
                 vector<double> h_for_beta_;
 
@@ -229,6 +229,24 @@
 //                     return dLdBeta_;
 //                 }
 
+                const vector<double> & get_gamma_() const {
+                    return gamma_;
+                }
+
+                const vector<double> & get_beta_() const {
+                    return beta_;
+                }
+
+                void set_gamma_(const vector<double> &gamma) {
+                    assert(gamma.size() == gamma_.size());
+                    gamma_ = gamma;
+                }
+
+                void set_beta_(const vector<double> &beta) {
+                    assert(beta.size() == beta_.size());
+                    beta_ = beta;
+                }
+
                 //This function optimizes the values of `gamma_` and `beta_`, using AdaGrad.
                 //Ideally this function should instead be included in the classes defined in "./optimizer.h".
                 void optimize_gamma_and_beta_(double learning_rate) {
@@ -244,6 +262,9 @@
                 }
 
         };
+
+        const double BatchNormalizationLayer::epsilon_ = 1e-7;
+        const double BatchNormalizationLayer::delta_ = 1e-7;
 
         class SigmoidLayer : public Layer {
 

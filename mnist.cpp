@@ -6,7 +6,7 @@ using namespace std;
 
 // #define NDEBUG
 
-#define MNIST_DEBUG 3 //changes debug level
+#define MNIST_DEBUG 0 //changes debug level
 
 // #define MNIST_GRADIENT_CHECK //does gradient check periodically
 
@@ -37,9 +37,6 @@ namespace prm {
     optimizer::optimizer_type opt_type = optimizer::t_adagrad;
 
     const vector<unsigned> num_node_of_hidden_layer({50, 30});
-//     const vector<unsigned> num_node_of_hidden_layer({50});
-//     const vector<unsigned> num_node_of_hidden_layer({10});
-//     const vector<unsigned> num_node_of_hidden_layer({10, 10});
 
     const unsigned batch_size = 100;
 
@@ -83,7 +80,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    #ifdef MNIST_DEBUG
+    #if MNIST_DEBUG != 0
         cout << "seed = " << seed << "\n";
         cout << "epoch = " << epoch << "\n";
         cout << "num_node_of_hidden_layer = ";
@@ -103,7 +100,7 @@ int main(int argc, char **argv) {
                     prm::stddev
                   );
 
-//     m.load_weight_and_bias_("weight_and_bias.dat");
+//     m.load_parameters_("result/weight_and_bias_0_3_25-45.dat");
 
     if (!m) {
         cout << "Some error occured.\n";
@@ -112,6 +109,7 @@ int main(int argc, char **argv) {
 
     m.training_(epoch, prm::dx, prm::learning_rate, prm::opt_type);
 
+    //Saves the parameters to the file.
     {
         ostringstream oss;
         oss << "result/weight_and_bias"
@@ -123,35 +121,39 @@ int main(int argc, char **argv) {
         }
         oss << ".dat";
 
-        m.save_weight_and_bias_(oss.str().c_str());
+        m.save_parameters_(oss.str().c_str());
 
         if (!m) {
             cout << "Some error occured.\n";
             return 1;
         }
-        cout << "Saved the weights and the biases to [ " << oss.str() << " ].\n";
+        cout << "\nSaved the weights and the biases to [ " << oss.str() << " ].\n";
     }
 
     const double final_accuracy = m.testing_();
     cout << "Final Accuracy: " << final_accuracy << "(%)\n";
 
-    cout << "\n\n#Loss Function History\n";
-    const vector<double> loss_function_history = m.get_loss_function_history_();
-    for (int i = 0; i < loss_function_history.size(); ++i) {
-        cout << i << " " << loss_function_history[i] << "\n";
-    }
+    #if MNIST_DEBUG != 0
 
-    cout << "\n\n#Accuracy History for Training Data\n";
-    const vector<double> accuracy_history_for_training_data = m.get_accuracy_history_for_training_data_();
-    for (int i = 0; i < accuracy_history_for_training_data.size(); ++i) {
-        cout << i << " " << accuracy_history_for_training_data[i] << "\n";
-    }
+        cout << "\n\n#Loss Function History\n";
+        const vector<double> loss_function_history = m.get_loss_function_history_();
+        for (int i = 0; i < loss_function_history.size(); ++i) {
+            cout << i << " " << loss_function_history[i] << "\n";
+        }
 
-    cout << "\n\n#Accuracy History for Testing Data\n";
-    const vector<double> accuracy_history_for_testing_data = m.get_accuracy_history_for_testing_data_();
-    for (int i = 0; i < accuracy_history_for_testing_data.size(); ++i) {
-        cout << i << " " << accuracy_history_for_testing_data[i] << "\n";
-    }
+        cout << "\n\n#Accuracy History for Training Data\n";
+        const vector<double> accuracy_history_for_training_data = m.get_accuracy_history_for_training_data_();
+        for (int i = 0; i < accuracy_history_for_training_data.size(); ++i) {
+            cout << i << " " << accuracy_history_for_training_data[i] << "\n";
+        }
+
+        cout << "\n\n#Accuracy History for Testing Data\n";
+        const vector<double> accuracy_history_for_testing_data = m.get_accuracy_history_for_testing_data_();
+        for (int i = 0; i < accuracy_history_for_testing_data.size(); ++i) {
+            cout << i << " " << accuracy_history_for_testing_data[i] << "\n";
+        }
+
+    #endif
 
     cout.flush();
     cerr.flush();

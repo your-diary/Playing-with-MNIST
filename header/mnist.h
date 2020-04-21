@@ -29,7 +29,7 @@
 
             constexpr double max_pixel_value = 255;
 
-            const string dataset_directory = "./read_mnist/data/";
+            string dataset_directory = "./read_mnist/data/";
 
             //The number of layers which as a whole constitute a single hidden layer.
             //For example, if each hidden layer consists of affine transformation, batch normalization and activation, then the value is 3.
@@ -322,6 +322,14 @@
                         rand_(seed)
                 {
 
+                    //All the codes are written, assuming not a single input but a minibatch is passed.
+                    //Thus, the value of `batch_size_` shall not be too small.
+                    const unsigned minimum_batch_size = 5;
+                    if (batch_size_ < minimum_batch_size) {
+                        cout << "The value [ " << batch_size_ << " ] of `batch_size_` is too small. It shall at least be " << minimum_batch_size << " or so.\n";
+                        error_flag_ = true;
+                    }
+
                     if (num_node_of_hidden_layer_.empty()) { //when there is no hidden layer
                         error_flag_ = true;
                     }
@@ -541,16 +549,35 @@
 
                 }
 
-                vector<int> infer_(const vector<vector<double>> &minibatch) {
+                vector<int> infer_(vector<vector<double>> minibatch) {
 
                     last_layer_ -> change_calculation_mode_(layer::LastLayer::testing_);
+
+                    //appends dummy data to make the size be `batch_size_`
+                    for (int i = 1; i < batch_size_; ++i) {
+
+                        if (image_test_.empty()) {
+
+                            vector<double> dummy(cnst::num_input_node);
+                            for (int j = 0; j < cnst::num_input_node; ++j) {
+                                dummy.push_back(rand_.bool_rand_());
+                            }
+                            minibatch.push_back(dummy);
+
+                        } else {
+
+                            minibatch.push_back(image_test_[rand_.int_rand_(0, image_test_.size() - 1)]);
+
+                        }
+
+                    }
 
                     const vector<int> predicted_label = predict_(minibatch);
                     return predicted_label;
 
                 }
 
-                void save_weight_and_bias_(const string &filename) {
+                void save_parameters_(const string &filename) {
 
                     ofstream ofs(filename.c_str(), ios_base::binary);
                     if (!ofs) {
@@ -585,7 +612,10 @@
                         for (int j = 0; j < bias_[i].size(); ++j) {
 
                             ofs.write(reinterpret_cast<char *>(&bias_[i][j]), sizeof(double));
-                            cout << bias_[i][j] << " ";
+
+                            #if MNIST_DEBUG
+                                cout << bias_[i][j] << " ";
+                            #endif
 
                         }
                     }
@@ -594,11 +624,31 @@
                         cout << "\n----------------\n\n";
                     #endif
 
+                    #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
+
+                        for (int i = 0; i < layer_.size(); ++i) {
+                            if (i % cnst::num_layer_in_hidden_layer == 1) {
+
+                                const vector<double> &gamma = dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> get_gamma_();
+                                for (int j = 0; j < gamma.size(); ++j) {
+                                    ofs.write(reinterpret_cast<const char *>(&gamma[j]), sizeof(double));
+                                }
+
+                                const vector<double> &beta = dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> get_beta_();
+                                for (int j = 0; j < beta.size(); ++j) {
+                                    ofs.write(reinterpret_cast<const char *>(&beta[j]), sizeof(double));
+                                }
+
+                            }
+                        }
+
+                    #endif
+
                     ofs.close();
 
                 }
 
-                void load_weight_and_bias_(const string &filename) {
+                void load_parameters_(const string &filename) {
 
                     ifstream ifs(filename.c_str(), ios_base::binary);
                     if (!ifs) {
@@ -644,10 +694,41 @@
                         cout << "\n----------------\n\n";
                     #endif
 
+                    #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
+
+                        for (int i = 0; i < layer_.size(); ++i) {
+                            if (i % cnst::num_layer_in_hidden_layer == 1) {
+
+                                vector<double> gamma(dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> get_gamma_().size());
+                                for (int j = 0; j < gamma.size(); ++j) {
+                                    ifs.read(reinterpret_cast<char *>(&gamma[j]), sizeof(double));
+                                }
+                                dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> set_gamma_(gamma);
+
+                                vector<double> beta(dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> get_beta_().size());
+                                for (int j = 0; j < beta.size(); ++j) {
+                                    ifs.read(reinterpret_cast<char *>(&beta[j]), sizeof(double));
+                                }
+                                dynamic_cast<layer::BatchNormalizationLayer *>(layer_[i]) -> set_beta_(beta);
+
+                            }
+                        }
+
+                    #endif
+
+                    //Now we shall be at the very end of the file.
                     if (!ifs) {
                         cout << "An error occurred while reading the file [ " << filename << " ]. Perhaps the network size is different.\n";
                         error_flag_ = true;
                         return;
+                    } else {
+                        double trash;
+                        ifs.read(reinterpret_cast<char *>(&trash), sizeof(double));
+                        if (ifs) {
+                            cout << "The file [ " << filename << " ] seems to have more than enough information. Perhaps the network size is different.\n";
+                            error_flag_ = true;
+                            return;
+                        }
                     }
 
                     ifs.close();
