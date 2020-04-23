@@ -524,23 +524,25 @@
 
                         //checks accuracy {
 
-                        const double accuracy_for_training_data = check_accuracy_(image_train_, label_train_) * 100;
-                        const double accuracy_for_testing_data = check_accuracy_(image_test_, label_test_) * 100;
-
-                        accuracy_history_for_training_data_.push_back(accuracy_for_training_data);
-                        accuracy_history_for_testing_data_.push_back(accuracy_for_testing_data);
-
                         #ifdef MNIST_DEBUG
+
+                            const double accuracy_for_training_data = check_accuracy_(image_train_, label_train_) * 100;
+                            const double accuracy_for_testing_data = check_accuracy_(image_test_, label_test_) * 100;
+
+                            accuracy_history_for_training_data_.push_back(accuracy_for_training_data);
+                            accuracy_history_for_testing_data_.push_back(accuracy_for_testing_data);
+
                             if (iter % num_loop_per_epoch == 0) {
                                 cout << "=== accuracy ===\n";
                                 cout << "Training Data: " << accuracy_for_training_data<< "(%)\n";
                                 cout << " Testing Data: " << accuracy_for_testing_data << "(%)\n";
                                 cout << "================\n";
                             }
-                        #endif
 
-                        #if MNIST_DEBUG > 2
-                            cout << "(" << iter << "/" << num_loop << ") " << E << " " << accuracy_for_training_data << " " << accuracy_for_testing_data << "\n";
+                            #if MNIST_DEBUG > 2
+                                cout << "(" << iter << "/" << num_loop << ") " << E << " " << accuracy_for_training_data << " " << accuracy_for_testing_data << "\n";
+                            #endif
+
                         #endif
 
                         //} checks accuracy

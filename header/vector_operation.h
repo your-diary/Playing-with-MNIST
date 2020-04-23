@@ -122,6 +122,31 @@
 
         }
 
+        //(matrix)+(matrix)
+        template <typename T1, typename T2>
+        vector<vector<T1>> operator + (vector<vector<T1>> lhs, const vector<vector<T2>> &rhs) {
+            assert(lhs.size() == rhs.size());
+            for (int i = 0; i < lhs.size(); ++i) {
+                for (int j = 0; j < lhs[i].size(); ++j) {
+                    lhs[i][j] += rhs[i][j];
+                }
+            }
+            return lhs;
+        }
+
+        //(matrix)+=(matrix)
+        template <typename T1, typename T2>
+        vector<vector<T1>> & operator += (vector<vector<T1>> &lhs, const vector<vector<T2>> &rhs) {
+            assert(lhs.size() == rhs.size());
+            assert(lhs[0].size() == rhs[0].size());
+            for (int i = 0; i < lhs.size(); ++i) {
+                for (int j = 0; j < lhs[i].size(); ++j) {
+                    lhs[i][j] += rhs[i][j];
+                }
+            }
+            return lhs;
+        }
+
         //(array)+(array)
         template <typename T1, typename T2>
         vector<T1> operator + (vector<T1> lhs, const vector<T2> &rhs) {
@@ -132,14 +157,12 @@
             return lhs;
         }
 
-        //(matrix)+(matrix)
+        //(array)+=(array)
         template <typename T1, typename T2>
-        vector<vector<T1>> operator + (vector<vector<T1>> lhs, const vector<vector<T2>> &rhs) {
+        vector<T1> & operator += (vector<T1> &lhs, const vector<T2> &rhs) {
             assert(lhs.size() == rhs.size());
             for (int i = 0; i < lhs.size(); ++i) {
-                for (int j = 0; j < lhs[i].size(); ++j) {
-                    lhs[i][j] += rhs[i][j];
-                }
+                lhs[i] += rhs[i];
             }
             return lhs;
         }
@@ -349,15 +372,56 @@
 
 //} assignment
 
+        namespace __internal {
+
+            //calculates B := transpose(A)
+            template <typename T>
+            void transpose_matrix(const vector<vector<T>> &A, vector<vector<T>> &B, unsigned row_start, unsigned /* exclusive */ row_end) {
+
+                assert(A.size() == B[0].size());
+                assert(A[0].size() == B.size());
+
+                static const unsigned num_unroll = 5;
+
+                const unsigned j_max = A[0].size();
+                const unsigned j_max_for_unrolled_loop = j_max / num_unroll * num_unroll;
+
+                for (int i = row_start; i < row_end; ++i) {
+                    for (int j = 0; j < j_max_for_unrolled_loop; j += num_unroll) {
+                        B[j][i] = A[i][j];
+                        B[j + 1][i] = A[i][j + 1];
+                        B[j + 2][i] = A[i][j + 2];
+                        B[j + 3][i] = A[i][j + 3];
+                        B[j + 4][i] = A[i][j + 4];
+                    }
+                    for (int j = j_max_for_unrolled_loop; j < j_max; ++j) {
+                        B[j][i] = A[i][j];
+                    }
+                }
+
+            }
+
+        }
+
         //This function returns the transposed version of an input matrix.
         //Note transposing is an expensive operation and it can sometimes be avoided just by accessing a matrix with reversed indices (e.g. `A[j][i]` instead of `A[i][j]`).
         template <typename T>
         vector<vector<T>> transpose(const vector<vector<T>> &v) {
             vector<vector<T>> ret(v[0].size(), vector<T>(v.size()));
-            for (int i = 0; i < ret.size(); ++i) {
-                for (int j = 0; j < ret[i].size(); ++j) {
-                    ret[i][j] = v[j][i];
-                }
+            vector<thread> thread_array;
+            for (int i = 0; i < cnst::num_thread; ++i) {
+                const unsigned row_start = i * (v.size() / cnst::num_thread);
+                const unsigned row_end = (i == cnst::num_thread - 1 ? v.size() : (i + 1) * (v.size() / cnst::num_thread));
+                thread_array.push_back(thread(
+                                                __internal::transpose_matrix<T>,
+                                                cref(v),
+                                                ref(ret),
+                                                row_start,
+                                                row_end
+                                              ));
+            }
+            for (int i = 0; i < cnst::num_thread; ++i) {
+                thread_array[i].join();
             }
             return ret;
         }

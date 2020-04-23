@@ -137,8 +137,8 @@
 
                 void optimize_(unsigned i, const vector<vector<double>> &dLdW, const vector<double> &dLdB) {
 
-                    h_for_weight_[i] = h_for_weight_[i] + element_wise_multiplication(dLdW, dLdW);
-                    h_for_bias_[i] = h_for_bias_[i] + element_wise_multiplication(dLdB, dLdB);
+                    h_for_weight_[i] += element_wise_multiplication(dLdW, dLdW);
+                    h_for_bias_[i] += element_wise_multiplication(dLdB, dLdB);
 
                     for (int j = 0; j < weight_[i].size(); ++j) {
                         for (int k = 0; k < weight_[i][j].size(); ++k) {
