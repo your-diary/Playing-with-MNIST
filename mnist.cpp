@@ -2,11 +2,14 @@ using namespace std;
 #include <iostream>
 #include <sstream>
 
+clock_t clock_array[100] = {0};
+string clock_label_array[100];
+
 #define NUM_THREAD 4 //number of threads used
 
 // #define NDEBUG
 
-#define MNIST_DEBUG 3 //changes debug level
+// #define MNIST_DEBUG 0 //changes debug level
 
 // #define MNIST_GRADIENT_CHECK //does gradient check periodically
 
@@ -62,6 +65,9 @@ namespace prm {
 
 int main(int argc, char **argv) {
 
+    clock_array[0] = clock();
+    clock_label_array[0] = "全体";
+
     //command-line arguments {
 
     unsigned seed = prm::seed;
@@ -96,6 +102,9 @@ int main(int argc, char **argv) {
 
     //} command-line arguments
 
+    clock_array[1] = clock();
+    clock_label_array[1] = "コンストラクタ";
+
     mnist::MNIST m(
                     prm::activation_function_type,
                     prm::loss_function_type,
@@ -105,6 +114,8 @@ int main(int argc, char **argv) {
                     seed,
                     prm::stddev
                   );
+
+    clock_array[1] = clock() - clock_array[1];
 
     #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
         m.set_lambda_for_weight_decay_(prm::lambda_for_weight_decay);
@@ -117,11 +128,19 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    clock_array[2] = clock();
+    clock_label_array[2] = "学習";
+
     m.training_(epoch,
                 #if MNIST_GRADIENT_TYPE == 1 //central difference
                     prm::dx,
                 #endif
                 prm::learning_rate, prm::opt_type);
+
+    clock_array[2] = clock() - clock_array[2];
+
+    clock_array[3] = clock();
+    clock_label_array[3] = "パラメータ保存";
 
     //Saves the parameters to the file.
     {
@@ -144,8 +163,13 @@ int main(int argc, char **argv) {
         cout << "\nSaved the weights and the biases to [ " << oss.str() << " ].\n";
     }
 
+    clock_array[3] = clock() - clock_array[3];
+
+    clock_array[4] = clock();
+    clock_label_array[4] = "推論";
     const double final_accuracy = m.testing_();
     cout << "Final Accuracy: " << final_accuracy << "(%)\n";
+    clock_array[4] = clock() - clock_array[4];
 
     #if MNIST_DEBUG != 0
 
@@ -168,6 +192,22 @@ int main(int argc, char **argv) {
         }
 
     #endif
+
+    clock_array[0] = clock() - clock_array[0];
+
+    cout << fixed;
+    cout.precision(3);
+    for (int i = 0; i < sizeof(clock_array) / sizeof(clock_t); ++i) {
+        if (clock_array[i] == 0) {
+            continue;
+        }
+        cout.width(2);
+        cout << i << ": ";
+        cout.width(6);
+        cout << (clock_array[i] / static_cast<double>(CLOCKS_PER_SEC)) << " (";
+        cout.width(3);
+        cout << static_cast<unsigned>(clock_array[i] / static_cast<double>(clock_array[0]) * 100) << "(%)) (" << clock_label_array[i] << ")" << "\n";
+    }
 
     cout.flush();
     cerr.flush();

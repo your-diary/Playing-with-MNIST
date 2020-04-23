@@ -65,16 +65,33 @@
                 { }
 
                 vector<vector<double>> forward_propagation_(const vector<vector<double>> &forward_input) {
+
+                    clock_label_array[17] = "Affine forward";
+                    clock_t c17 = clock();
+
                     forward_input_ = forward_input;
-                    return (forward_input * weight_ + bias_);
+                    auto ret = forward_input * weight_ + bias_;
+
+                    clock_array[17] += clock() - c17;
+
+                    return ret;
+
                 }
 
                 vector<vector<double>> backward_propagation_(const vector<vector<double>> &backward_input) {
 
+                    clock_label_array[18] = "Affine backward";
+                    clock_t c18 = clock();
+
+                    clock_label_array[23] = "Affine backward (dLdW)";
+                    clock_t c23 = clock();
                     dLdW_ = vector_operation::transpose(forward_input_) * backward_input;
                     assert(dLdW_.size() == weight_.size());
                     assert(dLdW_[0].size() == weight_[0].size());
+                    clock_array[23] += clock() - c23;
 
+                    clock_label_array[24] = "Affine backward (dLdB)";
+                    clock_t c24 = clock();
                     for (int i = 0; i < dLdB_.size(); ++i) {
                         dLdB_[i] = 0;
                     }
@@ -84,8 +101,15 @@
                         }
                     }
                     assert(dLdB_.size() == bias_.size());
+                    clock_array[24] += clock() - c24;
 
-                    return (backward_input * vector_operation::transpose(weight_));
+                    clock_label_array[25] = "Affine backward (ret)";
+                    clock_t c25 = clock();
+                    auto ret = (backward_input * vector_operation::transpose(weight_));
+                    clock_array[25] += clock() - c25;
+                    clock_array[18] += clock() - c18;
+
+                    return ret;
 
                 }
 
@@ -146,6 +170,9 @@
 
                 vector<vector<double>> forward_propagation_(const vector<vector<double>> &forward_input) {
 
+                    clock_label_array[14] = "batch forward";
+                    clock_t c14 = clock();
+
                     assert(forward_input.size() == batch_size_);
                     assert(forward_input[0].size() == input_size_);
 
@@ -181,11 +208,16 @@
                         }
                     }
 
+                    clock_array[14] += clock() - c14;
+
                     return (gamma_ * X_hat_ + beta_);
 
                 }
 
                 vector<vector<double>> backward_propagation_(const vector<vector<double>> &backward_input) {
+
+                    clock_label_array[19] = "Batch backward";
+                    clock_t c19 = clock();
 
                     for (int j = 0; j < input_size_; ++j) {
                         dLdGamma_[j] = 0;
@@ -216,6 +248,8 @@
                         }
 
                     }
+
+                    clock_array[19] += clock() - c19;
 
                     return backward_output;
 
@@ -311,6 +345,8 @@
                 ReluLayer() { }
 
                 vector<vector<double>> forward_propagation_(const vector<vector<double>> &forward_input) {
+                    clock_label_array[15] = "Relu forward";
+                    clock_t c15 = clock();
                     forward_output_ = forward_input;
                     for (int i = 0; i < forward_output_.size(); ++i) {
                         for (int j = 0; j < forward_output_[i].size(); ++j) {
@@ -319,10 +355,13 @@
                             }
                         }
                     }
+                    clock_array[15] += clock() - c15;
                     return forward_output_;
                 }
 
                 vector<vector<double>> backward_propagation_(const vector<vector<double>> &backward_input) {
+                    clock_label_array[20] = "Relu backward";
+                    clock_t c20 = clock();
                     vector<vector<double>> ret(forward_output_.size(), vector<double>(forward_output_[0].size()));
                     for (int i = 0; i < ret.size(); ++i) {
                         for (int j = 0; j < ret[i].size(); ++j) {
@@ -333,6 +372,7 @@
                     }
                     assert(ret.size() == backward_input.size());
                     assert(ret[0].size() == backward_input[0].size());
+                    clock_array[20] += clock() - c20;
                     return ret;
                 }
 
@@ -373,6 +413,9 @@
                 //
                 //`label_mask` has the same size as that of the minibatch's and is an array of indices for `true_label_`.
                 double forward_propagation_(const vector<vector<double>> &network_output, const vector<int> &label_mask) {
+
+                    clock_label_array[16] = "Last forward";
+                    clock_t c16 = clock();
 
                     //softmax {
 
@@ -415,11 +458,16 @@
 
                     //} cross entropy
 
+                    clock_array[16] += clock() - c16;
+
                     return final_output;
 
                 }
 
                 vector<vector<double>> backward_propagation_() {
+
+                    clock_label_array[21] = "Last backward";
+                    clock_t c21 = clock();
 
                     vector<vector<double>> ret = forward_output_;
                     for (int i = 0; i < ret.size(); ++i) {
@@ -431,6 +479,8 @@
                         }
                     }
                     ret /= ret.size();
+
+                    clock_array[21] += clock() - c21;
 
                     return ret;
 

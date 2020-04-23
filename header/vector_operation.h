@@ -60,6 +60,9 @@
         template <typename T1, typename T2>
         vector<vector<decltype(declval<T1>() + declval<T2>())>> operator + (vector<vector<T1>> lhs, const vector<T2> &rhs) {
 
+            clock_label_array[13] = "(matrix) + (array)";
+            clock_t c13 = clock();
+
             assert(lhs[0].size() == rhs.size());
 
             #define __MATRIX_PLUS_ARRAY_METHOD 1
@@ -118,6 +121,8 @@
 
             #endif
 
+            clock_array[13] += clock() - c13;
+
             return lhs;
 
         }
@@ -125,22 +130,28 @@
         //(array)+(array)
         template <typename T1, typename T2>
         vector<T1> operator + (vector<T1> lhs, const vector<T2> &rhs) {
+            clock_label_array[32] = "(array) + (array)";
+            clock_t c32 = clock();
             assert(lhs.size() == rhs.size());
             for (int i = 0; i < lhs.size(); ++i) {
                 lhs[i] += rhs[i];
             }
+            clock_array[32] += clock() - c32;
             return lhs;
         }
 
         //(matrix)+(matrix)
         template <typename T1, typename T2>
         vector<vector<T1>> operator + (vector<vector<T1>> lhs, const vector<vector<T2>> &rhs) {
+            clock_label_array[29] = "(matrix) + (matrix)";
+            clock_t c29 = clock();
             assert(lhs.size() == rhs.size());
             for (int i = 0; i < lhs.size(); ++i) {
                 for (int j = 0; j < lhs[i].size(); ++j) {
                     lhs[i][j] += rhs[i][j];
                 }
             }
+            clock_array[29] += clock() - c29;
             return lhs;
         }
 
@@ -232,6 +243,9 @@
         template <typename T1, typename T2>
         vector<vector<decltype(declval<T1>() * declval<T2>())>> operator * (const vector<vector<T1>> &lhs, const vector<vector<T2>> &rhs) {
 
+            clock_label_array[12] = "(matrix) * (matrix)";
+            clock_t c12 = clock();
+
             assert(lhs[0].size() == rhs.size());
 
             vector<vector<decltype(declval<T1>() * declval<T2>())>> ret(lhs.size(), vector<decltype(declval<T1>() * declval<T2>())>(rhs[0].size()));
@@ -254,6 +268,8 @@
                 thread_array[i].join();
             }
 
+            clock_array[12] += clock() - c12;
+
             return ret;
 
         }
@@ -262,12 +278,15 @@
         //element-wise multiplication
         template <typename T1, typename T2>
         vector<vector<T1>> element_wise_multiplication(vector<vector<T1>> lhs, const vector<vector<T2>> &rhs) {
+            clock_label_array[30] = "(matrix) * (matrix) (ELEMENT-WISE)";
+            clock_t c30 = clock();
             assert(lhs.size() == rhs.size());
             for (int i = 0; i < lhs.size(); ++i) {
                 for (int j = 0; j < lhs[i].size(); ++j) {
                     lhs[i][j] *= rhs[i][j];
                 }
             }
+            clock_array[30] += clock() - c30;
             return lhs;
         }
 
@@ -275,10 +294,13 @@
         //element-wise multiplication
         template <typename T1, typename T2>
         vector<T1> element_wise_multiplication(vector<T1> lhs, const vector<T2> &rhs) {
+            clock_label_array[31] = "(array) * (array) (ELEMENT-WISE)";
+            clock_t c31 = clock();
             assert(lhs.size() == rhs.size());
             for (int i = 0; i < lhs.size(); ++i) {
                 lhs[i] *= rhs[i];
             }
+            clock_array[31] += clock() - c31;
             return lhs;
         }
 
@@ -353,12 +375,15 @@
         //Note transposing is an expensive operation and it can sometimes be avoided just by accessing a matrix with reversed indices (e.g. `A[j][i]` instead of `A[i][j]`).
         template <typename T>
         vector<vector<T>> transpose(const vector<vector<T>> &v) {
+            clock_label_array[22] = "(matrix) transpose";
+            clock_t c22 = clock();
             vector<vector<T>> ret(v[0].size(), vector<T>(v.size()));
             for (int i = 0; i < ret.size(); ++i) {
                 for (int j = 0; j < ret[i].size(); ++j) {
                     ret[i][j] = v[j][i];
                 }
             }
+            clock_array[22] += clock() - c22;
             return ret;
         }
 

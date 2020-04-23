@@ -235,8 +235,14 @@
                 }
 
                 double calculate_gradient_by_backpropagation_(const vector<vector<double>> &input, const vector<int> &random_index_array) {
+                    clock_label_array[10] = "学習(forward)";
+                    clock_label_array[11] = "学習(backward)";
+                    clock_t c10 = clock();
                     const double E = forward_propagation_(input, random_index_array);
+                    clock_array[10] += clock() - c10;
+                    clock_t c11 = clock();
                     backward_propagation_();
+                    clock_array[11] += clock() - c11;
                     return E;
                 }
 
@@ -466,11 +472,19 @@
                     const unsigned num_loop_per_epoch = image_train_.size() / batch_size_;
                     const unsigned num_loop = num_loop_per_epoch * epoch;
 
+                    clock_array[5] = clock();
+                    clock_label_array[5] = "学習(メインループ)";
+                    clock_label_array[6] = "学習(勾配の計算)";
+                    clock_label_array[7] = "学習(パラメータ修正)";
+                    clock_label_array[8] = "学習(Batch Normalization)";
+                    clock_label_array[9] = "学習(精度確認)";
                     for (int iter = 0; iter < num_loop; ++iter) {
 
                         vector<vector<double>> input;
                         vector<int> random_index_array;
                         create_minibatch_(image_train_, input, random_index_array);
+
+                        clock_t c6 = clock();
 
                         #if MNIST_GRADIENT_TYPE == 0 //backpropagation (efficient)
 
@@ -492,6 +506,10 @@
                             }
                         #endif
 
+                        clock_array[6] += clock() - c6;
+
+                        clock_t c7 = clock();
+
                         //modifies parameters {
 
                         for (int i = 0; i < weight_.size(); ++i) {
@@ -512,6 +530,10 @@
 
                         }
 
+                        clock_array[7] += clock() - c7;
+
+                        clock_t c8 = clock();
+
                         #if MNIST_ENABLE_BATCH_NORMALIZATION == 1
                             for (int i = 0; i < layer_.size(); ++i) {
                                 if (i % cnst::num_layer_in_hidden_layer == 1) {
@@ -520,32 +542,39 @@
                             }
                         #endif
 
+                        clock_array[8] += clock() - c8;
+
                         //} modifies parameters
 
-                        //checks accuracy {
+                        clock_t c9 = clock();
 
-                        const double accuracy_for_training_data = check_accuracy_(image_train_, label_train_) * 100;
-                        const double accuracy_for_testing_data = check_accuracy_(image_test_, label_test_) * 100;
+//                         //checks accuracy {
+// 
+//                         const double accuracy_for_training_data = check_accuracy_(image_train_, label_train_) * 100;
+//                         const double accuracy_for_testing_data = check_accuracy_(image_test_, label_test_) * 100;
+// 
+//                         accuracy_history_for_training_data_.push_back(accuracy_for_training_data);
+//                         accuracy_history_for_testing_data_.push_back(accuracy_for_testing_data);
+// 
+//                         #ifdef MNIST_DEBUG
+//                             if (iter % num_loop_per_epoch == 0) {
+//                                 cout << "=== accuracy ===\n";
+//                                 cout << "Training Data: " << accuracy_for_training_data<< "(%)\n";
+//                                 cout << " Testing Data: " << accuracy_for_testing_data << "(%)\n";
+//                                 cout << "================\n";
+//                             }
+//                         #endif
+// 
+//                         #if MNIST_DEBUG > 2
+//                             cout << "(" << iter << "/" << num_loop << ") " << E << " " << accuracy_for_training_data << " " << accuracy_for_testing_data << "\n";
+//                         #endif
+// 
+//                         //} checks accuracy
 
-                        accuracy_history_for_training_data_.push_back(accuracy_for_training_data);
-                        accuracy_history_for_testing_data_.push_back(accuracy_for_testing_data);
-
-                        #ifdef MNIST_DEBUG
-                            if (iter % num_loop_per_epoch == 0) {
-                                cout << "=== accuracy ===\n";
-                                cout << "Training Data: " << accuracy_for_training_data<< "(%)\n";
-                                cout << " Testing Data: " << accuracy_for_testing_data << "(%)\n";
-                                cout << "================\n";
-                            }
-                        #endif
-
-                        #if MNIST_DEBUG > 2
-                            cout << "(" << iter << "/" << num_loop << ") " << E << " " << accuracy_for_training_data << " " << accuracy_for_testing_data << "\n";
-                        #endif
-
-                        //} checks accuracy
+                        clock_array[9] += clock() - c9;
 
                     }
+                    clock_array[5] = clock() - clock_array[5];
 
                 }
                 

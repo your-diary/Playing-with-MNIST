@@ -137,18 +137,27 @@
 
                 void optimize_(unsigned i, const vector<vector<double>> &dLdW, const vector<double> &dLdB) {
 
+                    clock_label_array[26] = "AdaGrad (1)";
+                    clock_t c26 = clock();
                     h_for_weight_[i] = h_for_weight_[i] + element_wise_multiplication(dLdW, dLdW);
                     h_for_bias_[i] = h_for_bias_[i] + element_wise_multiplication(dLdB, dLdB);
+                    clock_array[26] += clock() - c26;
 
+                    clock_label_array[27] = "AdaGrad (2)";
+                    clock_t c27 = clock();
                     for (int j = 0; j < weight_[i].size(); ++j) {
                         for (int k = 0; k < weight_[i][j].size(); ++k) {
                             weight_[i][j][k] -= learning_rate_for_weight_[0][0][0] * dLdW[j][k] / sqrt(h_for_weight_[i][j][k]);
                         }
                     }
+                    clock_array[27] += clock() - c27;
 
+                    clock_label_array[28] = "AdaGrad (3)";
+                    clock_t c28 = clock();
                     for (int j = 0; j < bias_[i].size(); ++j) {
                         bias_[i][j] -= learning_rate_for_bias_[0][0] * dLdB[j] / h_for_bias_[i][j];
                     }
+                    clock_array[28] += clock() - c28;
 
                 }
 
