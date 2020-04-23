@@ -1,9 +1,12 @@
-//Requirements
-//1. `MNIST_GRADIENT_TYPE` macro shall be defined. `0` uses backpropagation to calculate gradient and `1` uses central difference.
-//2. `MNIST_DEBUG` macro is optionally defined. Then debugging information is additionally output.
-//3. `MNIST_GRADIENT_CHECK` macro is optionally defined. Then gradient check is done periodically. This is only useful when you'd like to check if the implementation is correct.
-//4. `MNIST_WEIGHT_INITIALIZATION_METHOD` macro is optionally defined, which determines how weights are initialized. `0` uses N(0, 1) multiplied by `stddev`, `1` performs Xavier initialization and `2` performs He initialization.
-//5. `MNIST_ENABLE_BATCH_NORMALIZATION` macro shall be defined. `0` disables batch normalization and `1` enables it.
+//[Requirements]
+//- `MNIST_GRADIENT_TYPE` macro shall be defined. `0` uses backpropagation to calculate gradient and `1` uses central difference.
+//- `MNIST_ENABLE_BATCH_NORMALIZATION` macro shall be defined. `0` disables batch normalization and `1` enables it.
+
+//[Optional Requirements]
+//- `MNIST_DEBUG` macro can optionally be defined. Then debugging information is additionally output.
+//- `MNIST_GRADIENT_CHECK` macro can optionally be defined. Then gradient check is done periodically. This is only useful when you'd like to check if the implementation is correct.
+//- `MNIST_WEIGHT_INITIALIZATION_METHOD` macro can optionally be defined, which determines how weights are initialized. `0` uses N(0, 1) multiplied by `stddev`, `1` performs Xavier initialization and `2` performs He initialization.
+//- `MNIST_SHOULD_ENABLE_WEIGHT_DECAY` macro can optionally be defined. If defined, weight decay is enabled.
 
 #ifndef is_mnist_included
 
@@ -76,6 +79,10 @@
                 vector<double> accuracy_history_for_testing_data_;
 
                 bool error_flag_ = false;
+
+                #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+                    /* const */ double lambda_for_weight_decay_;
+                #endif
 
             private:
 
@@ -320,6 +327,9 @@
                         layer_(cnst::num_layer_in_hidden_layer * num_node_of_hidden_layer_.size() + 1),
                         batch_size_(batch_size),
                         rand_(seed)
+                        #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+                            , lambda_for_weight_decay_(0.1) //This initial value is ad hoc. One should explicitly call `set_lambda_for_weight_decay_()`.
+                        #endif
                 {
 
                     //All the codes are written, assuming not a single input but a minibatch is passed.
@@ -411,12 +421,24 @@
                 }
 
                 double forward_propagation_(const vector<vector<double>> &input, const vector<int> &random_index_array) {
+
                     vector<vector<double>> output = input;
                     for (int i = 0; i < layer_.size(); ++i) {
                         output = (layer_[i] -> forward_propagation_(output));
                     }
                     const double E = (last_layer_ -> forward_propagation_(output, random_index_array));
+
+                    #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+                        double weight_decay = 0;
+                        for (int i = 0; i < weight_.size(); ++i) {
+                            weight_decay += vector_operation::squared_sum(weight_[i]);
+                        }
+                        weight_decay *= lambda_for_weight_decay_ / 2;
+                        return E + weight_decay;
+                    #endif
+
                     return E;
+
                 }
 
                 void backward_propagation_() {
@@ -427,7 +449,11 @@
                     }
                 }
 
-                void training_(unsigned epoch, double dx, double learning_rate, optimizer::optimizer_type opt_type) {
+                void training_(unsigned epoch,
+                               #if MNIST_GRADIENT_TYPE == 1 //central difference
+                                   double dx,
+                               #endif
+                               double learning_rate, optimizer::optimizer_type opt_type) {
 
                     last_layer_ -> change_calculation_mode_(layer::LastLayer::training_);
 
@@ -478,7 +504,11 @@
                                 const vector<double> &dLdB = dLdB_array[i];
                             #endif
 
-                            optimizer -> optimize_(i, dLdW, dLdB);
+                            #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+                                optimizer -> optimize_(i, dLdW + lambda_for_weight_decay_ * weight_[i], dLdB);
+                            #else
+                                optimizer -> optimize_(i, dLdW, dLdB);
+                            #endif
 
                         }
 
@@ -754,6 +784,12 @@
                 operator bool () const {
                     return !error_flag_;
                 }
+
+                #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+                    void set_lambda_for_weight_decay_(double lambda) { //Normally this should be called just once.
+                        lambda_for_weight_decay_ = lambda;
+                    }
+                #endif
 
         };
 

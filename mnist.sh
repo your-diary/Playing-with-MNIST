@@ -24,10 +24,17 @@ if [[ ! -z ${num_node_of_hidden_layer} ]]; then
     done
 fi
 output_file="${output_file}.txt"
+if [[ -f "${output_file}" ]]; then
+    output_file="${output_file}_$(mktemp --dry-run XXXXXX)"
+fi
+
+binary_name="mnist.out"
+
+make
 
 date
-echo "time ./mnist.out ${seed} ${epoch} ${num_node_of_hidden_layer} > \"${output_file}\""
+echo "time ./${binary_name} ${seed} ${epoch} ${num_node_of_hidden_layer} > \"${output_file}\""
 
 trap 'echo "Inturrupted." && rm -v "${output_file}"' SIGINT
-time ./mnist.out ${seed} ${epoch} ${num_node_of_hidden_layer} > "${output_file}"
+time "./${binary_name}" ${seed} ${epoch} ${num_node_of_hidden_layer} > "${output_file}"
 

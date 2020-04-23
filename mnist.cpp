@@ -6,7 +6,7 @@ using namespace std;
 
 // #define NDEBUG
 
-#define MNIST_DEBUG 0 //changes debug level
+#define MNIST_DEBUG 3 //changes debug level
 
 // #define MNIST_GRADIENT_CHECK //does gradient check periodically
 
@@ -22,6 +22,8 @@ using namespace std;
 #define MNIST_WEIGHT_INITIALIZATION_METHOD 2
 
 #define MNIST_ENABLE_BATCH_NORMALIZATION 1 //1 enables batch normalization and 0 disables it.
+
+// #define MNIST_SHOULD_ENABLE_WEIGHT_DECAY //Uncomment this to disable weight decay.
 
 #include "header/mnist.h"
 
@@ -51,6 +53,10 @@ namespace prm {
     const double dx = 1e-2;
 
     const double learning_rate = 1e-2;
+
+    #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+        const double lambda_for_weight_decay = 1e-1;
+    #endif
 
 }
 
@@ -100,6 +106,10 @@ int main(int argc, char **argv) {
                     prm::stddev
                   );
 
+    #ifdef MNIST_SHOULD_ENABLE_WEIGHT_DECAY
+        m.set_lambda_for_weight_decay_(prm::lambda_for_weight_decay);
+    #endif
+
 //     m.load_parameters_("result/weight_and_bias_0_3_25-45.dat");
 
     if (!m) {
@@ -107,7 +117,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    m.training_(epoch, prm::dx, prm::learning_rate, prm::opt_type);
+    m.training_(epoch,
+                #if MNIST_GRADIENT_TYPE == 1 //central difference
+                    prm::dx,
+                #endif
+                prm::learning_rate, prm::opt_type);
 
     //Saves the parameters to the file.
     {

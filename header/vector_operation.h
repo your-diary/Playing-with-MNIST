@@ -11,6 +11,7 @@
     #endif
 
     #include <iostream>
+    #include <cmath>
     #include <vector>
     #include <thread>
     #include <cassert>
@@ -382,6 +383,17 @@
                 if (v[i] > max_value) {
                     max_value = v[i];
                     ret = i;
+                }
+            }
+            return ret;
+        }
+
+        template <typename T>
+        T squared_sum(const vector<vector<T>> &m) {
+            double ret = 0;
+            for (int i = 0; i < m.size(); ++i) {
+                for (int j = 0; j < m[i].size(); ++j) {
+                    ret += pow(m[i][j], 2);
                 }
             }
             return ret;

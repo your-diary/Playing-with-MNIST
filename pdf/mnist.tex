@@ -1024,10 +1024,11 @@ An accuracy of about $95\ (\%)$ in \fig{4.4} is clearly insufficient but not too
 
 Appendices are the permanent "beta" version.
 
-
-
+%-------------------------------------%
 
 \section{}
+
+%-------------------------------------%
 
 \subsection{Comparison of Optimizer}
 
@@ -1042,6 +1043,8 @@ Sometimes other optimizers are faster than gradient descent.
     \label{fig:A.1}
 \end{figure}
 
+%-------------------------------------%
+
 \subsection{Comparison of Weight Initialization}
 
 \begin{figure}[H]
@@ -1052,6 +1055,8 @@ Sometimes other optimizers are faster than gradient descent.
     \caption{Comparison of four initialization methods for weights.}
     \label{fig:A.2}
 \end{figure}
+
+%-------------------------------------%
 
 \subsection{Batch Normalization}
 
@@ -1147,6 +1152,23 @@ Finally \refe{A.7} is proved as follows.
     \caption{Comparison of networks with or without batch normalization.}
     \label{fig:A.3}
 \end{figure}
+
+%-------------------------------------%
+
+\subsection{Weight Decay}
+
+Using weight decay, we can suppress overfitting. However, \fig{A.4} reads an improper value of $\lambda$ may make a situation worse.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[H]{1.0\textwidth}
+        \pic{12}{fig/misc/weight_decay_comparison.eps}
+	\end{subfigure}
+    \caption{How weight decay suppresses overfitting. The vertical axis represents the difference between accuracy for training data and that for testing data.}
+    \label{fig:A.4}
+\end{figure}
+
+%-------------------------------------%
 
 \end{appendices}
 
