@@ -160,7 +160,7 @@ y &=& \left\{ \beginarray{l} 0 \supp{S \leq 0} \\ 1 \supp{S > 0} \edarray \right
 S &\equiv& \sum _i x_i w_i + b. \la{2.4}
 \edeq
 
-We can structure a {\it network}, a.k.a. a {\it graph}, by arranging multiple perceptrons, which have generally different $\bracc{w_i}$ and $b$, and by defining the relationship between them. Then each perceptron is called a {\it neuron} or a {\it node} and each bridge which connects two different perceptrons is called an {\it edge}. In this case, an edge has its direction, meaning a pulse is transferred from the {\it source} node to the {\it target} node. See \fig{2.1} for an example.
+We can structure a {\it network}, a.k.a. a {\it graph}, by arranging multiple perceptrons which have generally different $\bracc{w_i}$ and $b$, and by defining the relationship between them. Then each perceptron is called a {\it neuron} or a {\it node} and each bridge which connects two different perceptrons is called an {\it edge}. In this case, an edge has its direction, meaning a pulse is transferred from the {\it source} node to the {\it target} node. See \fig{2.1} for an example.
 
 \begin{figure}[H]
     \centering
@@ -514,7 +514,7 @@ Even when we have $H'$ inputs in total, it is usual we feed only $H$ of them, wh
 
 \subsection{Steepest Descent} \label{section:3.5}
 
-As previously noticed in \sect{3.5}, now we explain one of the ways how to modify the internal parameters of a network in response to outputs of the loss function.\\
+As previously noticed, in this subsection, now we explain one of the ways how to modify the internal parameters of a network in response to outputs of the loss function.\\
 
 {\it Gradient} is an array of partial derivatives with respect to each variable. For example, in $x-y$ plane, the gradient of $f(x, y) = y^3 + (x + y)^2 + 3x$ is given as
 \begineq
@@ -586,7 +586,7 @@ See \theorem{3.2} for the matrix version of this theorem.
 
 \subsubsection{Backpropagation} \label{section:3.6.2}
 
-Say we have the network shown in \fig{3.5} and would have $\dif{a}{z}, \dif{b}{z}$ and $\dif{c}{z}$. Using central difference, these derivatives are calculated completely independently. But are they truly independent? No. Taking into account $d, e, f$ are independent of $a, b, c$, the derivatives are broken by chain rule as
+Say we have the network shown in \fig{3.5} and would like to have $\dif{a}{z}, \dif{b}{z}$ and $\dif{c}{z}$. Using central difference, these derivatives are calculated completely independently. But are they truly independent? No. Taking into account $d, e, f$ are independent of $a, b, c$, the derivatives are broken by chain rule as
 \begineq
 \dif{a}{z} &=& \dif{y}{z} \dif{a}{y} \no
 &=& \dif{y}{z} \dif{x}{y} \dif{a}{x} \la{3.20} \\
@@ -612,7 +612,7 @@ Actually we can even calculate the derivatives with respect to the variables in 
 \dif{\bma}{z} = \dif{y}{z} \dif{x}{y} \dif{\bma}{x} \la{3.23}
 \edeq
 
-where $\bma \equiv (a, b, c)$. Here we defined for any $N \times M$ matrix $A$ and a scalar $L$,
+where $\bma \equiv (a, b, c)$. Here we defined, for any $N \times M$ matrix $A$ and a scalar $L$,
 \begineq
 \dif{A}{L} \equiv \brac{\beginarray{cccc} \pset{A_{11}} & \pset{A_{12}} & \cdots & \pset{A_{1M}} \\ \pset{A_{21}} & \naname & & \vdots \\ \vdots & & \naname & \vdots \\ \pset{A_{N1}} & \cdots & \cdots & \pset{A_{NM}} \edarray} L. \la{3.24}
 \edeq
@@ -932,7 +932,7 @@ To see how backpropagation is faster than central difference, we did a simple sp
     \centering
     \begin{tabular}{|l|c|} \hline
     method & elapsed time (sec) \\ \hline
-    backpropagation & $22.299$ \\ \hline
+    backpropagation & \ \ \ \ $22.299$ \\ \hline
     central difference & $41171.548$ \\ \hline
     \end{tabular}
     \caption{The result of the speed test. Backpropagation is much faster.}
